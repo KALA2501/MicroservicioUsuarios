@@ -21,7 +21,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 
-public class Medico {
+public class Paciente {
     @Id
     private String pkId;
     
@@ -39,12 +39,13 @@ public class Medico {
     @Column(unique = true, nullable = false)
     private String idDocumento;
     private Timestamp fechaNacimiento;
-    private String profesion;
-    private String especialidad;
+    private String codigoCIE;
     @Column(unique = true, nullable = false)
     private String telefono;
     private String direccion;
+    private int etapa;
+    private String zona;
+    private String distrito;
     private String genero;
-    private String tarjetaProfesional;
     private String urlImagen;
 }

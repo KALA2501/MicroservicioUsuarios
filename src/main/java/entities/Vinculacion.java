@@ -21,12 +21,20 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 
-public class Admin {
+public class Vinculacion {
     @Id
-    private String pkId;
-    private String nombreCompleto;
-
     @ManyToOne
-    @JoinColumn(name = "FK_CentroMedico")
-    private CentroMedico centroMedico;
+    @JoinColumn(name = "PK_FK_IDPaciente")
+    private Paciente paciente;
+    
+    @Id
+    @ManyToOne
+    @JoinColumn(name = "PK_FK_IDMedico")
+    private Medico medico;
+
+    private Timestamp fechaVinculado;
+    
+    @ManyToOne
+    @JoinColumn(name = "FK_TipoVinculacion")
+    private TipoVinculacion tipoVinculacion;
 }

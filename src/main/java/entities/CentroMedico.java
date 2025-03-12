@@ -15,23 +15,14 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 
-
 public class CentroMedico {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long idAdmin; 
-
+    private Long pkId;
     private String nombre;
-    private String centroMedico;
-
     @Column(unique = true, nullable = false)
-    private String correo;
-
     private String telefono;
     private String direccion;
-    private String contrasena;
-
-    private String URLLogo;
-
-    private boolean activado = false; 
+    private String URLogo;
 }
+

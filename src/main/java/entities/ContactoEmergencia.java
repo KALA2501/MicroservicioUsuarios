@@ -21,30 +21,21 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 
-public class Medico {
+public class ContactoEmergencia {
     @Id
-    private String pkId;
-    
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long pkId;
+
     @ManyToOne
-    @JoinColumn(name = "FK_ID_CentroMedico")
-    private CentroMedico centroMedico;
+    @JoinColumn(name = "FK_IDPaciente")
+    private Paciente paciente;
 
     private String nombre;
     private String apellido;
-
-    @ManyToOne
-    @JoinColumn(name = "FK_ID_TipoDocumento")
-    private TipoDocumento tipoDocumento;
-
-    @Column(unique = true, nullable = false)
-    private String idDocumento;
-    private Timestamp fechaNacimiento;
-    private String profesion;
-    private String especialidad;
+    private String relacion;
+    private String direccion;
     @Column(unique = true, nullable = false)
     private String telefono;
-    private String direccion;
-    private String genero;
-    private String tarjetaProfesional;
-    private String urlImagen;
+    private String email;
 }
+   

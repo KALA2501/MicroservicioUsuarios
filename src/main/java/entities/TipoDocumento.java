@@ -8,12 +8,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import jakarta.persistence.*;
-import lombok.*;
-import java.sql.Timestamp;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.JoinColumn;
-import java.util.List;
 
 @Entity
 @Getter
@@ -21,12 +15,8 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 
-public class Admin {
+public class TipoDocumento {
     @Id
-    private String pkId;
-    private String nombreCompleto;
-
-    @ManyToOne
-    @JoinColumn(name = "FK_CentroMedico")
-    private CentroMedico centroMedico;
+    private String id;
+    private String tipo;
 }

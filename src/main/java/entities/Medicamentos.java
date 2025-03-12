@@ -21,12 +21,13 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 
-public class Admin {
+public class Medicamentos {
     @Id
-    private String pkId;
-    private String nombreCompleto;
-
-    @ManyToOne
-    @JoinColumn(name = "FK_CentroMedico")
-    private CentroMedico centroMedico;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long pkId;
+    private String nombre;
+    private String dosis;
+    private boolean isMorning;
+    private boolean isNight;
+    private String colorActividad;
 }

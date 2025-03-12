@@ -21,12 +21,20 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 
-public class Admin {
+public class Comentario {
     @Id
-    private String pkId;
-    private String nombreCompleto;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long pkId;
 
     @ManyToOne
-    @JoinColumn(name = "FK_CentroMedico")
-    private CentroMedico centroMedico;
+    @JoinColumn(name = "FK_IDMedico")
+    private Medico medico;
+    
+    @ManyToOne
+    @JoinColumn(name = "FK_IDPaciente")
+    private Paciente paciente;
+
+    @Column(nullable = false)
+    private String descripcion;
+    private Timestamp fecha;
 }
