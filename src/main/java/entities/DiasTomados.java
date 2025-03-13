@@ -29,6 +29,6 @@ public class DiasTomados {
     private String dia;
     
     @ManyToOne
-    @JoinColumn(name = "FK_IDMedicamento")
+    @JoinColumn(name = "FK_IDMedicamento", nullable = false)
     private Medicamentos medicamento;
 }
