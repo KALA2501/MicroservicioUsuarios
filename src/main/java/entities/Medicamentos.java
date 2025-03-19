@@ -15,6 +15,8 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.JoinColumn;
 import java.util.List;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 @Entity
 @Getter
 @Setter
@@ -24,7 +26,8 @@ import java.util.List;
 public class Medicamentos {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long pkId;
+    @Schema(hidden = true)
+    private Integer pkId;
     private String nombre;
     private String dosis;
     private boolean isMorning;

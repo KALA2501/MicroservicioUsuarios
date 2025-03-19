@@ -2,13 +2,14 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/microserviciousuario?serverTimezone=UTC
     username: root
-    password: admin
+    password:
     driver-class-name: com.mysql.cj.jdbc.Driver
+
 
   jpa:
     database-platform: org.hibernate.dialect.MySQL8Dialect
     hibernate:
-      ddl-auto: update  # O "validate" si quieres que solo valide sin modificar
+      ddl-auto: validate  # O "validate" si quieres que solo valide sin modificar
     show-sql: true
     
 

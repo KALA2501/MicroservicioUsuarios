@@ -15,6 +15,8 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.JoinColumn;
 import java.util.List;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 @Entity
 @Getter
 @Setter

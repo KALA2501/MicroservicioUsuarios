@@ -15,6 +15,8 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.JoinColumn;
 import java.util.List;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 @Entity
 @Getter
 @Setter
@@ -24,6 +26,7 @@ import java.util.List;
 public class Comentario {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Schema(hidden = true)
     private Long pkId;
 
     @ManyToOne
