@@ -3,9 +3,13 @@ package controllers;
 import entities.CentroMedico;
 import services.CentroMedicoService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 import java.util.Optional;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -35,18 +39,28 @@ public class CentroMedicoController {
     @ApiResponse(responseCode = "200", description = "Centro médico encontrado")
     @ApiResponse(responseCode = "404", description = "Centro médico no encontrado")
     @GetMapping("/{id}")
-    public Optional<CentroMedico> obtenerPorId(@PathVariable Long id) {
-        return service.obtenerPorId(id);
+    public ResponseEntity<?> obtenerPorId(@PathVariable Long id) {
+        Optional<CentroMedico> centro = service.obtenerPorId(id);
+        if (centro.isPresent()) {
+            return ResponseEntity.ok(centro.get());
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Centro médico no encontrado");
+        }
     }
 
     @Operation(
         summary = "Crear un centro médico",
         description = "Guarda un centro médico recibido en el cuerpo de la petición"
     )
-    @ApiResponse(responseCode = "200", description = "Centro médico guardado correctamente")
+    @ApiResponse(responseCode = "201", description = "Centro médico guardado correctamente")
     @PostMapping
-    public CentroMedico guardar(@RequestBody CentroMedico centroMedico) {
-        return service.guardar(centroMedico);
+    public ResponseEntity<?> guardar(@RequestBody CentroMedico centroMedico) {
+        try {
+            CentroMedico guardado = service.guardar(centroMedico);
+            return ResponseEntity.status(HttpStatus.CREATED).body(guardado);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error al guardar centro médico: " + e.getMessage());
+        }
     }
 
     @Operation(
@@ -55,7 +69,12 @@ public class CentroMedicoController {
     )
     @ApiResponse(responseCode = "200", description = "Centro médico eliminado correctamente")
     @DeleteMapping("/{id}")
-    public void eliminar(@PathVariable Long id) {
-        service.eliminar(id);
+    public ResponseEntity<?> eliminar(@PathVariable Long id) {
+        try {
+            service.eliminar(id);
+            return ResponseEntity.ok("Centro médico eliminado correctamente");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No se pudo eliminar: " + e.getMessage());
+        }
     }
 }
