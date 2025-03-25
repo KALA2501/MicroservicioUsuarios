@@ -11,6 +11,20 @@ public class MedicoService {
     @Autowired
     private MedicoRepository repository;
 
+    @Autowired
+    private CentroMedicoRepository centroMedicoRepository;
+
+    @Autowired
+    private TipoDocumentoRepository tipoDocumentoRepository;
+
+    public Optional<CentroMedico> obtenerCentroPorId(Long id) {
+        return centroMedicoRepository.findById(id);
+    }
+
+    public Optional<TipoDocumento> obtenerTipoDocumentoPorId(String id) {
+        return tipoDocumentoRepository.findById(id);
+    }
+
     public List<Medico> obtenerTodos() {
         return repository.findAll();
     }
@@ -25,5 +39,20 @@ public class MedicoService {
 
     public void eliminar(String id) {
         repository.deleteById(id);
+    }
+
+    public List<Medico> obtenerPorCentroMedico(Long idCentro) {
+        return repository.findByCentroMedicoPkId(idCentro);
+    }
+
+    public List<Medico> filtrarMedicos(String nombre, String tarjeta, String profesion) {
+        if (nombre != null && !nombre.isEmpty()) {
+            return repository.findByNombreContainingIgnoreCase(nombre);
+        } else if (tarjeta != null && !tarjeta.isEmpty()) {
+            return repository.findByTarjetaProfesionalContainingIgnoreCase(tarjeta);
+        } else if (profesion != null && !profesion.isEmpty()) {
+            return repository.findByProfesionContainingIgnoreCase(profesion);
+        }
+        return repository.findAll();
     }
 }
