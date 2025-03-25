@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 
+
+
 @Service
 public class PacienteService {
 
@@ -19,6 +21,9 @@ public class PacienteService {
 
     @Autowired
     private TipoDocumentoRepository tipoDocumentoRepository;
+
+    @Autowired
+    private VinculacionRepository vinculacionRepository;
 
     public List<Paciente> obtenerTodos() {
         return repository.findAll();
@@ -77,4 +82,37 @@ public class PacienteService {
 
         return repository.save(existente);
     }
+
+    public List<Vinculacion> obtenerPacientesPorTarjetaProfesional(String tarjetaProfesional) {
+        return vinculacionRepository.findByMedico_TarjetaProfesional(tarjetaProfesional);
+    }
+
+    public List<Paciente> buscarPorNombre(String nombre) {
+        return repository.findByNombreContainingIgnoreCase(nombre);
+    }
+    
+    public Optional<Paciente> buscarPorTipoYNumero(String tipoDocumentoId, String idDocumento) {
+        return repository.findByTipoDocumento_IdAndIdDocumento(tipoDocumentoId, idDocumento);
+    }
+
+    public Paciente guardarConValidacion(Paciente paciente) {
+        // Verificar si ya existe por tipo y número de documento
+        Optional<Paciente> existentePorDoc = repository.findByTipoDocumento_IdAndIdDocumento(
+            paciente.getTipoDocumento().getId(), paciente.getIdDocumento()
+        );
+    
+        if (existentePorDoc.isPresent()) {
+            throw new RuntimeException("Ya existe un paciente con ese tipo y número de documento");
+        }
+    
+        // Verificar si ya existe el teléfono
+        boolean existeTelefono = repository.existsByTelefono(paciente.getTelefono());
+        if (existeTelefono) {
+            throw new RuntimeException("Ya existe un paciente con ese número de teléfono");
+        }
+    
+        return repository.save(paciente);
+    }
+    
+    
 }
