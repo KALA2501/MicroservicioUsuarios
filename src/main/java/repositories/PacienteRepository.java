@@ -16,5 +16,11 @@ public interface PacienteRepository extends JpaRepository<Paciente, String> {
     Optional<Paciente> findByTipoDocumento_IdAndIdDocumento(String tipoDocumentoId, String idDocumento);
     boolean existsByTelefono(String telefono);
 
+    // Buscar por nombre o apellido ignorando mayúsculas
+    List<Paciente> findByNombreContainingIgnoreCaseOrApellidoContainingIgnoreCase(String nombre, String apellido);
+    
+    // Buscar por etapa de enfermedad
+    List<Paciente> findByEtapa(Integer etapa);
+
 
 }

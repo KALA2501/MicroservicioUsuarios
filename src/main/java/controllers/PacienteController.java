@@ -176,5 +176,12 @@ public class PacienteController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Paciente no encontrado");
         }
     }
+
+    @Operation(summary = "Filtrar pacientes por etapa de enfermedad")
+    @GetMapping("/etapa")
+    public ResponseEntity<List<Paciente>> filtrarPorEtapa(@RequestParam Integer etapa) {
+        List<Paciente> resultados = service.filtrarPorEtapa(etapa);
+        return ResponseEntity.ok(resultados);
+    }
     
 }

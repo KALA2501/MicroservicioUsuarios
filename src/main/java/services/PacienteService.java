@@ -113,6 +113,13 @@ public class PacienteService {
     
         return repository.save(paciente);
     }
-    
+
+    public List<Paciente> buscarPorNombreOApellido(String termino) {
+        return repository.findByNombreContainingIgnoreCaseOrApellidoContainingIgnoreCase(termino, termino);
+    }
+
+    public List<Paciente> filtrarPorEtapa(Integer etapa) {
+        return repository.findByEtapa(etapa);
+    }
     
 }
