@@ -15,6 +15,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.JoinColumn;
 import java.util.List;
 
+
 import io.swagger.v3.oas.annotations.media.Schema;
 
 @Entity
@@ -22,15 +23,21 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-
 public class Medicamentos {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Schema(hidden = true)
     private Integer pkId;
+
     private String nombre;
     private String dosis;
     private boolean isMorning;
     private boolean isNight;
     private String colorActividad;
+
+    @ManyToOne
+    @JoinColumn(name = "paciente_id")
+    private Paciente paciente;  
 }
+

@@ -25,6 +25,10 @@ public class PacienteService {
     @Autowired
     private VinculacionRepository vinculacionRepository;
 
+    @Autowired
+    private MedicamentosRepository medicamentoRepository;
+
+
     public List<Paciente> obtenerTodos() {
         return repository.findAll();
     }
@@ -112,6 +116,45 @@ public class PacienteService {
         }
     
         return repository.save(paciente);
+    }
+    
+    public Paciente guardarConMedicamentos(Paciente paciente, List<Medicamentos> medicamentos) {
+        Paciente guardado = repository.save(paciente);
+    
+        for (Medicamentos m : medicamentos) {
+            m.setPaciente(guardado);
+            medicamentoRepository.save(m);
+        }
+    
+        return guardado;
+    }
+    
+    public Paciente actualizarMedicamentos(String pacienteId, List<Medicamentos> nuevosMedicamentos) {
+        Paciente paciente = repository.findById(pacienteId)
+            .orElseThrow(() -> new RuntimeException("Paciente no encontrado"));
+
+        medicamentoRepository.deleteByPaciente(paciente);
+
+        for (Medicamentos m : nuevosMedicamentos) {
+            m.setPaciente(paciente);
+            medicamentoRepository.save(m);
+        }
+
+        return paciente;
+    }
+
+    public void eliminarMedicamento(Long medicamentoId) {
+        Medicamentos med = medicamentoRepository.findById(medicamentoId)
+            .orElseThrow(() -> new RuntimeException("Medicamento no encontrado"));
+
+        medicamentoRepository.delete(med);
+    }
+
+    public List<Medicamentos> obtenerMedicamentosDePaciente(String pacienteId) {
+        Paciente paciente = repository.findById(pacienteId)
+            .orElseThrow(() -> new RuntimeException("Paciente no encontrado"));
+    
+        return medicamentoRepository.findByPaciente(paciente);
     }
     
     

@@ -1,6 +1,7 @@
 package controllers;
 
 import entities.CentroMedico;
+import entities.Medicamentos;
 import entities.Paciente;
 import entities.TipoDocumento;
 import entities.Vinculacion;
@@ -176,5 +177,34 @@ public class PacienteController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Paciente no encontrado");
         }
     }
-    
+
+    @Operation(summary = "Actualizar medicamentos de un paciente", 
+           description = "Permite reemplazar completamente los medicamentos de un paciente por una nueva lista")
+    @PutMapping("/{id}/medicamentos")
+    public ResponseEntity<?> actualizarMedicamentos(
+            @PathVariable String id,
+            @RequestBody List<Medicamentos> nuevosMedicamentos) {
+        
+        try {
+            Paciente actualizado = service.actualizarMedicamentos(id, nuevosMedicamentos);
+            return ResponseEntity.ok(actualizado);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                                .body("Error al actualizar medicamentos: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Eliminar un medicamento", 
+           description = "Elimina un medicamento específico de un paciente")
+    @DeleteMapping("/medicamentos/{idMedicamento}")
+    public ResponseEntity<?> eliminarMedicamento(@PathVariable Long idMedicamento) {
+        try {
+            service.eliminarMedicamento(idMedicamento);
+            return ResponseEntity.ok("Medicamento eliminado correctamente");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                                .body("Error al eliminar medicamento: " + e.getMessage());
+        }
+    }
+
 }
