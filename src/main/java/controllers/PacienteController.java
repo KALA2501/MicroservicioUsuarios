@@ -3,6 +3,7 @@ package controllers;
 import entities.CentroMedico;
 import entities.Paciente;
 import entities.TipoDocumento;
+import entities.Vinculacion;
 import services.PacienteService;
 import repositories.CentroMedicoRepository;
 import repositories.TipoDocumentoRepository;
@@ -33,10 +34,7 @@ public class PacienteController {
     @Autowired
     private TipoDocumentoRepository tipoDocumentoRepository;
 
-    @Operation(
-        summary = "Obtener todos los pacientes",
-        description = "Retorna una lista de todos los pacientes registrados en el sistema"
-    )
+    @Operation(summary = "Obtener todos los pacientes", description = "Retorna una lista de todos los pacientes registrados en el sistema")
     @ApiResponse(responseCode = "200", description = "Lista de pacientes obtenida exitosamente")
     @GetMapping
     public List<Paciente> obtenerTodos() {
@@ -52,74 +50,68 @@ public class PacienteController {
     @ApiResponse(responseCode = "404", description = "Paciente no encontrado")
     public ResponseEntity<?> obtenerPorId(@PathVariable String id) {
         Optional<Paciente> paciente = service.obtenerPorId(id);
-        return paciente.isPresent()
-            ? ResponseEntity.ok(paciente.get())
-            : ResponseEntity.status(HttpStatus.NOT_FOUND).body("Paciente no encontrado");
-    }
+        
+        if (paciente.isPresent()) {
+            return ResponseEntity.ok(paciente.get());
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Paciente no encontrado");
+        }
+    }    
     
-
-    @Operation(
-        summary = "Guardar un nuevo paciente",
-        description = "Crea y almacena un nuevo paciente a partir de los datos proporcionados"
-    )
+    
+    @Operation(summary = "Guardar un nuevo paciente", description = "Crea y almacena un nuevo paciente a partir de los datos proporcionados")
     @ApiResponse(responseCode = "201", description = "Paciente guardado correctamente")
     @PostMapping
     public ResponseEntity<?> guardar(@RequestBody Map<String, Object> data) {
-        try {
-            Paciente paciente = new Paciente();
-    
-            paciente.setPkId(UUID.randomUUID().toString());
-    
-            // Campos obligatorios y seguros
-            paciente.setNombre(data.get("nombre").toString());
-            paciente.setIdDocumento(data.get("idDocumento").toString());
-            paciente.setTelefono(data.get("telefono").toString());
-            paciente.setEmail(data.get("email").toString());
-    
-            // Campos opcionales convertidos de forma segura
-            paciente.setApellido(data.getOrDefault("apellido", "").toString());
-            paciente.setDireccion(data.getOrDefault("direccion", "").toString());
-            paciente.setCodigoCIE(data.getOrDefault("codigoCIE", "").toString());
-            paciente.setZona(data.getOrDefault("zona", "").toString());
-            paciente.setDistrito(data.getOrDefault("distrito", "").toString());
-            paciente.setGenero(data.getOrDefault("genero", "").toString());
-            paciente.setUrlImagen(data.getOrDefault("urlImagen", "").toString());
-    
-            // Etapa (int)
-            Object etapaRaw = data.get("etapa");
-            int etapa = (etapaRaw instanceof Integer) ? (Integer) etapaRaw : Integer.parseInt(etapaRaw.toString());
-            paciente.setEtapa(etapa);
-    
-            // Fecha de nacimiento
-            String fechaNacStr = data.get("fechaNacimiento").toString();
-            paciente.setFechaNacimiento(Timestamp.valueOf(fechaNacStr + " 00:00:00"));
-    
-            // Centro médico
-            Long idCentro = Long.parseLong(data.get("centroMedico").toString());
-            CentroMedico centro = centroMedicoRepository.findById(idCentro)
+    try {
+        Paciente paciente = new Paciente();
+        paciente.setPkId(UUID.randomUUID().toString());
+
+        // Campos obligatorios
+        paciente.setNombre(data.get("nombre").toString());
+        paciente.setIdDocumento(data.get("idDocumento").toString());
+        paciente.setTelefono(data.get("telefono").toString());
+        paciente.setEmail(data.get("email").toString());
+
+        // Campos opcionales
+        paciente.setApellido(data.getOrDefault("apellido", "").toString());
+        paciente.setDireccion(data.getOrDefault("direccion", "").toString());
+        paciente.setCodigoCIE(data.getOrDefault("codigoCIE", "").toString());
+        paciente.setZona(data.getOrDefault("zona", "").toString());
+        paciente.setDistrito(data.getOrDefault("distrito", "").toString());
+        paciente.setGenero(data.getOrDefault("genero", "").toString());
+        paciente.setUrlImagen(data.getOrDefault("urlImagen", "").toString());
+
+        Object etapaRaw = data.get("etapa");
+        int etapa = (etapaRaw instanceof Integer) ? (Integer) etapaRaw : Integer.parseInt(etapaRaw.toString());
+        paciente.setEtapa(etapa);
+
+        String fechaNacStr = data.get("fechaNacimiento").toString();
+        paciente.setFechaNacimiento(Timestamp.valueOf(fechaNacStr + " 00:00:00"));
+
+        Long idCentro = Long.parseLong(data.get("centroMedico").toString());
+        CentroMedico centro = centroMedicoRepository.findById(idCentro)
                 .orElseThrow(() -> new RuntimeException("Centro médico no encontrado"));
-            paciente.setCentroMedico(centro);
+        paciente.setCentroMedico(centro);
 
-            // Obtener tipo de documento
-            String idTipoDoc = (String) data.get("tipoDocumento");
-            TipoDocumento tipoDocumento = tipoDocumentoRepository.findById(idTipoDoc)
+        String idTipoDoc = data.get("tipoDocumento").toString();
+        TipoDocumento tipoDoc = tipoDocumentoRepository.findById(idTipoDoc)
                 .orElseThrow(() -> new RuntimeException("Tipo de documento no encontrado"));
-            paciente.setTipoDocumento(tipoDocumento);
-    
-            // Guardar paciente
-            Paciente nuevo = service.guardar(paciente);
-            return ResponseEntity.status(HttpStatus.CREATED).body(nuevo);
-    
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error al crear paciente: " + e.getMessage());
-        }
-    }
-    
+        paciente.setTipoDocumento(tipoDoc);
 
-    @Operation(
-        summary = "Actualizar paciente",
-        description = "Actualiza los datos de un paciente existente por ID"
-    )
+        // VALIDACIÓN DE DUPLICADOS + GUARDADO
+        Paciente nuevo = service.guardarConValidacion(paciente);
+        return ResponseEntity.status(HttpStatus.CREATED).body(nuevo);
+
+    } catch (RuntimeException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error al crear paciente: " + e.getMessage());
+    }
+    }
+
+
+    @Operation(summary = "Actualizar paciente", description = "Actualiza los datos de un paciente existente por ID")
     @ApiResponse(responseCode = "200", description = "Paciente actualizado correctamente")
     @ApiResponse(responseCode = "404", description = "Paciente no encontrado")
     @PutMapping("/{id}")
@@ -131,25 +123,58 @@ public class PacienteController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Error: " + e.getMessage());
         }
     }
-    
-    @Operation(
-    summary = "Listar pacientes por centro médico",
-    description = "Devuelve todos los pacientes asociados al centro médico dado"
-    )
+
+    @Operation(summary = "Eliminar paciente", description = "Elimina el paciente identificado por el ID proporcionado")
+    @ApiResponse(responseCode = "200", description = "Paciente eliminado correctamente")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> eliminar(@PathVariable String id) {
+        try {
+            service.eliminar(id);
+            return ResponseEntity.ok("Paciente eliminado exitosamente");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Error al eliminar: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Listar pacientes por centro médico", description = "Devuelve todos los pacientes asociados al centro médico dado")
     @ApiResponse(responseCode = "200", description = "Lista obtenida exitosamente")
     @GetMapping("/centro-medico/{idCentro}")
     public List<Paciente> obtenerPorCentroMedico(@PathVariable Long idCentro) {
         return service.obtenerPorCentroMedico(idCentro);
     }
 
-
-    @Operation(
-        summary = "Eliminar paciente",
-        description = "Elimina el paciente identificado por el ID proporcionado"
-    )
-    @ApiResponse(responseCode = "200", description = "Paciente eliminado correctamente")
-    @DeleteMapping("/{id}")
-    public void eliminar(@PathVariable String id) {
-        service.eliminar(id);
+    @Operation(summary = "Listar pacientes por médico", description = "Devuelve todos los pacientes asociados a un médico según su tarjeta profesional")
+    @ApiResponse(responseCode = "200", description = "Pacientes encontrados")
+    @GetMapping("/medico")
+    public ResponseEntity<?> obtenerPacientesPorMedico(@RequestParam String tarjetaProfesional) {
+        try {
+            List<Vinculacion> vinculaciones = service.obtenerPacientesPorTarjetaProfesional(tarjetaProfesional);
+            return ResponseEntity.ok(vinculaciones);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error al buscar pacientes: " + e.getMessage());
+        }
     }
+
+    @Operation(summary = "Buscar pacientes por nombre", description = "Devuelve pacientes cuyos nombres coincidan parcialmente con el valor ingresado")
+    @GetMapping("/buscar/nombre")
+    public List<Paciente> buscarPorNombre(@RequestParam String nombre) {
+        return service.buscarPorNombre(nombre);
+    }
+    @Operation(
+        summary = "Buscar paciente por tipo y número de identificación",
+        description = "Devuelve un paciente que coincida exactamente con el tipo y número de identificación"
+    )
+    @ApiResponse(responseCode = "200", description = "Paciente encontrado")
+    @ApiResponse(responseCode = "404", description = "Paciente no encontrado")
+    @GetMapping("/buscar/documento")
+    public ResponseEntity<?> buscarPorTipoYNumero(@RequestParam String tipo, @RequestParam String numero) {
+        Optional<Paciente> paciente = service.buscarPorTipoYNumero(tipo, numero);
+    
+        if (paciente.isPresent()) {
+            return ResponseEntity.ok(paciente.get());
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Paciente no encontrado");
+        }
+    }
+    
 }
