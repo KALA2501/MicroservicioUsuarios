@@ -88,12 +88,19 @@
 			<artifactId>spring-boot-starter-validation</artifactId>
     	</dependency>
 	
-   <dependency>
-     <groupId>com.google.guava</groupId>
-     <artifactId>guava</artifactId>
-     <version>28.0-jre</version>
-   </dependency>
- </dependencies>
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+			<version>28.0-jre</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.scala-lang</groupId>
+			<artifactId>scala-library</artifactId>
+			<version>2.13.0</version>
+		</dependency>
+
+</dependencies>
 
 	<build>
 		<plugins>
