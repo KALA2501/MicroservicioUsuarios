@@ -27,4 +27,19 @@ public class CentroMedicoService {
     public void eliminar(Long id) {
         repository.deleteById(id);
     }
+
+    public CentroMedico actualizar(Long id, CentroMedico nuevosDatos) {
+        Optional<CentroMedico> existente = repository.findById(id);
+        if (existente.isPresent()) {
+            CentroMedico centro = existente.get();
+            centro.setNombre(nuevosDatos.getNombre());
+            centro.setDireccion(nuevosDatos.getDireccion());
+            centro.setTelefono(nuevosDatos.getTelefono());
+            centro.setURLogo(nuevosDatos.getURLogo());
+            return repository.save(centro);
+        } else {
+            throw new RuntimeException("Centro médico no encontrado con ID: " + id);
+        }
+    }
+    
 }
