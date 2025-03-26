@@ -4,6 +4,8 @@ import entities.SolicitudCentroMedico;
 import repositories.SolicitudCentroMedicoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.UserRecord;
 
 import java.util.List;
 
@@ -32,5 +34,28 @@ public class SolicitudCentroMedicoService {
                 .orElseThrow(() -> new RuntimeException("Solicitud no encontrada"));
         s.setProcesado(true);
         repository.save(s);
+    }
+
+    public void procesarYCrearUsuario(Long id) {
+        SolicitudCentroMedico solicitud = repository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Solicitud no encontrada"));
+    
+        solicitud.setProcesado(true);
+        repository.save(solicitud);
+    
+        try {
+            UserRecord.CreateRequest request = new UserRecord.CreateRequest()
+                    .setEmail(solicitud.getCorreo())
+                    .setPassword("KalaTemporal123") // Contraseña temporal
+                    .setEmailVerified(false)
+                    .setDisabled(false);
+    
+            FirebaseAuth.getInstance().createUser(request);
+            System.out.println("✅ Usuario creado en Firebase");
+    
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("No se pudo crear el usuario en Firebase");
+        }
     }
 }

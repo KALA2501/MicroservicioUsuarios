@@ -5,4 +5,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface CentroMedicoRepository extends JpaRepository<CentroMedico, Long> {
+    boolean existsByCorreo(String correo);
 }

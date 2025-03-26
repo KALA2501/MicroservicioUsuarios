@@ -5,6 +5,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.UserRecord;
+
 
 
 @Service
@@ -40,6 +43,34 @@ public class CentroMedicoService {
         } else {
             throw new RuntimeException("Centro médico no encontrado con ID: " + id);
         }
+    }
+
+    @Autowired
+    private CentroMedicoRepository centroMedicoRepository;
+    public CentroMedico registrarCentroMedico(CentroMedico centro) {
+        // Validaciones previas
+        if (centroMedicoRepository.existsByCorreo(centro.getCorreo())) {
+            throw new RuntimeException("Centro ya existe");
+        }
+    
+        // Guardar en la base de datos
+        CentroMedico guardado = centroMedicoRepository.save(centro);
+    
+        // Crear en Firebase Authentication
+        try {
+            UserRecord.CreateRequest request = new UserRecord.CreateRequest()
+                .setEmail(guardado.getCorreo())
+                .setPassword("KalaTemporal123") // contraseña temporal
+                .setEmailVerified(false)
+                .setDisabled(false);
+    
+            FirebaseAuth.getInstance().createUser(request);
+        } catch (Exception e) {
+            e.printStackTrace();
+            // (Opcional) Revertir si falla la creación en Firebase
+        }
+    
+        return guardado;
     }
     
 }

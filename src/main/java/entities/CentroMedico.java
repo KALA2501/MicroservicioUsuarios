@@ -26,5 +26,8 @@ public class CentroMedico {
     private String telefono;
     private String direccion;
     private String URLogo;
+    @Column(unique = true, nullable = false)
+    private String correo;
+
 }
 

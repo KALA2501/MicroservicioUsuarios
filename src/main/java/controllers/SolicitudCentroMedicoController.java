@@ -26,6 +26,18 @@ public class SolicitudCentroMedicoController {
         }
     }
 
+    @PutMapping("/{id}/procesar")
+    public ResponseEntity<?> marcarProcesado(@PathVariable Long id) {
+        try {
+            service.procesarYCrearUsuario(id);
+            return ResponseEntity.ok("Solicitud marcada como procesada y usuario creado");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(500).body(e.getMessage());
+        }
+    }
+
+
+
     @GetMapping
     public ResponseEntity<List<SolicitudCentroMedico>> listar() {
         return ResponseEntity.ok(service.obtenerSolicitudes());
