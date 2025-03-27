@@ -58,4 +58,19 @@ public class SolicitudCentroMedicoService {
             throw new RuntimeException("No se pudo crear el usuario en Firebase");
         }
     }
+
+    public void revertirProcesado(Long id) {
+        SolicitudCentroMedico s = repository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Solicitud no encontrada"));
+        s.setProcesado(false);
+        repository.save(s);
+    }
+    
+    public void eliminarSolicitud(Long id) {
+        if (!repository.existsById(id)) {
+            throw new RuntimeException("Solicitud no encontrada");
+        }
+        repository.deleteById(id);
+    }
+    
 }

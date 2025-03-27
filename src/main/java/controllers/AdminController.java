@@ -3,7 +3,14 @@ package controllers;
 import entities.Admin;
 import services.AdminService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import com.google.firebase.auth.ExportedUserRecord;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.ListUsersPage;
+
+import java.util.ArrayList;
 import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -26,4 +33,24 @@ public class AdminController {
     public List<Admin> obtenerTodos() {
         return service.obtenerTodos();
     }
+
+    @GetMapping("/usuarios-firebase")
+public ResponseEntity<List<String>> obtenerUsuariosFirebase() {
+    try {
+        List<String> correos = new ArrayList<>();
+
+        ListUsersPage page = FirebaseAuth.getInstance().listUsers(null);
+        for (ExportedUserRecord user : page.iterateAll()) {
+            String email = user.getEmail();
+            if (!email.equals("admin@kala.com")) {
+                correos.add(email);
+            }
+        }
+
+        return ResponseEntity.ok(correos);
+    } catch (Exception e) {
+        return ResponseEntity.status(500).body(null);
+    }
+}
+
 }

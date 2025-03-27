@@ -36,6 +36,25 @@ public class SolicitudCentroMedicoController {
         }
     }
 
+        @PutMapping("/{id}/revertir")
+    public ResponseEntity<?> revertirProcesado(@PathVariable Long id) {
+        try {
+            service.revertirProcesado(id);
+            return ResponseEntity.ok("✅ Solicitud revertida");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(404).body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> eliminar(@PathVariable Long id) {
+        try {
+            service.eliminarSolicitud(id);
+            return ResponseEntity.ok("🗑️ Solicitud eliminada");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(404).body(e.getMessage());
+        }
+    }
 
 
     @GetMapping
