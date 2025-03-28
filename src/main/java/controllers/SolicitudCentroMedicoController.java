@@ -26,16 +26,6 @@ public class SolicitudCentroMedicoController {
         }
     }
 
-    @PutMapping("/{id}/procesar")
-    public ResponseEntity<?> marcarProcesado(@PathVariable Long id) {
-        try {
-            service.procesarYCrearUsuario(id);
-            return ResponseEntity.ok("Solicitud marcada como procesada y usuario creado");
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(500).body(e.getMessage());
-        }
-    }
-
         @PutMapping("/{id}/revertir")
     public ResponseEntity<?> revertirProcesado(@PathVariable Long id) {
         try {
@@ -55,7 +45,15 @@ public class SolicitudCentroMedicoController {
             return ResponseEntity.status(404).body(e.getMessage());
         }
     }
-
+    
+    @PutMapping("/{id}/procesar")
+    public ResponseEntity<String> procesarSolicitud(
+            @PathVariable Long id,
+            @RequestParam("rol") String rol) {
+        service.procesarYCrearUsuario(id, rol);
+        return ResponseEntity.ok("Usuario creado con rol: " + rol);
+    }
+    
 
     @GetMapping
     public ResponseEntity<List<SolicitudCentroMedico>> listar() {

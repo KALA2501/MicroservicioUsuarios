@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Optional;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.UserRecord;
+import java.util.HashMap;
+import java.util.Map;
 
 
 
@@ -64,7 +66,13 @@ public class CentroMedicoService {
                 .setEmailVerified(false)
                 .setDisabled(false);
     
-            FirebaseAuth.getInstance().createUser(request);
+            UserRecord userRecord = FirebaseAuth.getInstance().createUser(request);
+            
+            Map<String, Object> claims = new HashMap<>();
+            claims.put("rol", "centro_medico");
+            FirebaseAuth.getInstance().setCustomUserClaims(userRecord.getUid(), claims);
+            
+            System.out.println("✅ Usuario creado y rol asignado: centro_medico");
         } catch (Exception e) {
             e.printStackTrace();
             // (Opcional) Revertir si falla la creación en Firebase
