@@ -50,7 +50,12 @@ public class CentroMedicoService {
     @Autowired
     private CentroMedicoRepository centroMedicoRepository;
     public CentroMedico registrarCentroMedico(CentroMedico centro) {
-        // Validaciones previas
+        // Validar campos obligatorios
+        if (centro.getNombre() == null || centro.getCorreo() == null || centro.getTelefono() == null) {
+            throw new RuntimeException("Faltan datos obligatorios");
+        }
+
+        // Verificar si el correo ya existe
         if (centroMedicoRepository.existsByCorreo(centro.getCorreo())) {
             throw new RuntimeException("Centro ya existe");
         }

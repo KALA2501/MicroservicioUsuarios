@@ -130,4 +130,11 @@ public class SolicitudCentroMedicoService {
         }
         repository.deleteById(id);
     }
+
+    public void eliminarPorId(Long id) {
+        if (!repository.existsById(id)) {
+            throw new RuntimeException("Solicitud no encontrada");
+        }
+        repository.deleteById(id);
+    }
 }

@@ -2,6 +2,7 @@ package controllers;
 
 import entities.CentroMedico;
 import services.CentroMedicoService;
+import repositories.CentroMedicoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +22,9 @@ public class CentroMedicoController {
 
     @Autowired
     private CentroMedicoService service;
+
+    @Autowired
+    private CentroMedicoRepository centroMedicoRepository;
 
     @Operation(
         summary = "Obtener todos los centros médicos",
@@ -56,7 +60,7 @@ public class CentroMedicoController {
     @PostMapping
     public ResponseEntity<?> guardar(@RequestBody CentroMedico centroMedico) {
         try {
-            CentroMedico guardado = service.guardar(centroMedico);
+            CentroMedico guardado = service.registrarCentroMedico(centroMedico);
             return ResponseEntity.status(HttpStatus.CREATED).body(guardado);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error al guardar centro médico: " + e.getMessage());
@@ -94,6 +98,15 @@ public class CentroMedicoController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error al actualizar centro médico: " + e.getMessage());
         }
+    }
+
+    @GetMapping("/buscar-por-correo")
+    public ResponseEntity<?> obtenerPorCorreo(@RequestParam String correo) {
+        Optional<CentroMedico> centro = centroMedicoRepository.findByCorreo(correo);
+        if (centro.isPresent()) {
+            return ResponseEntity.ok(centro.get());
+        }
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Centro no encontrado");
     }
 
 

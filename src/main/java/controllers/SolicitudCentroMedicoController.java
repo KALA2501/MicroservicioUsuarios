@@ -5,12 +5,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import services.SolicitudCentroMedicoService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import org.springframework.http.HttpStatus;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/solicitudes-centro-medico")
-@CrossOrigin("*")
 public class SolicitudCentroMedicoController {
 
     @Autowired
@@ -36,13 +38,19 @@ public class SolicitudCentroMedicoController {
         }
     }
 
+    @Operation(
+        summary = "Eliminar una solicitud de centro médico",
+        description = "Elimina una solicitud de centro médico por su ID"
+    )
+    @ApiResponse(responseCode = "200", description = "Solicitud eliminada correctamente")
+    @ApiResponse(responseCode = "404", description = "Solicitud no encontrada")
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> eliminar(@PathVariable Long id) {
+    public ResponseEntity<?> eliminarSolicitud(@PathVariable Long id) {
         try {
-            service.eliminarSolicitud(id);
-            return ResponseEntity.ok("🗑️ Solicitud eliminada");
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(404).body(e.getMessage());
+            service.eliminarPorId(id);
+            return ResponseEntity.ok("Solicitud eliminada correctamente");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No se pudo eliminar la solicitud: " + e.getMessage());
         }
     }
     
