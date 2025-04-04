@@ -14,6 +14,7 @@ import com.google.firebase.auth.FirebaseAuthException;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class SolicitudCentroMedicoService {
@@ -127,25 +128,56 @@ public class SolicitudCentroMedicoService {
         }
     }
 
+    @Transactional
     public void revertirProcesado(Long id) {
         SolicitudCentroMedico solicitud = repository.findById(id)
             .orElseThrow(() -> new RuntimeException("Solicitud no encontrada"));
 
-        solicitud.setProcesado(false);
-        repository.save(solicitud);
+        System.out.println("🔄 Iniciando proceso de reversión para: " + solicitud.getCorreo());
 
+        // 1. Verificar si existe en centro_medico
+        boolean existeEnBaseDatos = centroMedicoRepository.existsByCorreo(solicitud.getCorreo());
+        System.out.println(existeEnBaseDatos ? "✅ Existe en base de datos" : "⚠️ No existe en base de datos");
+
+        // 2. Verificar si existe en Firebase
+        boolean existeEnFirebase = false;
         try {
-            // Elimina usuario en Firebase
             UserRecord user = FirebaseAuth.getInstance().getUserByEmail(solicitud.getCorreo());
-            FirebaseAuth.getInstance().deleteUser(user.getUid());
-            System.out.println("🗑️ Usuario eliminado de Firebase");
-
-            // Elimina en base de datos (si ya estaba en centro_medico)
-            centroMedicoRepository.deleteByCorreo(solicitud.getCorreo());
-            System.out.println("🗑️ Eliminado de centro_medico también");
-
+            existeEnFirebase = true;
+            System.out.println("✅ Existe en Firebase");
         } catch (FirebaseAuthException e) {
-            System.out.println("⚠️ Usuario no estaba en Firebase o error: " + e.getMessage());
+            System.out.println("⚠️ No existe en Firebase");
+        }
+
+        // 3. Realizar las acciones necesarias
+        if (existeEnBaseDatos || existeEnFirebase) {
+            // Si existe en algún lado, procedemos a eliminar
+            try {
+                if (existeEnBaseDatos) {
+                    centroMedicoRepository.deleteByCorreo(solicitud.getCorreo());
+                    System.out.println("✅ Eliminado de la base de datos");
+                }
+                
+                if (existeEnFirebase) {
+                    UserRecord user = FirebaseAuth.getInstance().getUserByEmail(solicitud.getCorreo());
+                    FirebaseAuth.getInstance().deleteUser(user.getUid());
+                    System.out.println("✅ Eliminado de Firebase");
+                }
+                
+                // Marcar como no procesado
+                solicitud.setProcesado(false);
+                repository.save(solicitud);
+                System.out.println("✅ Solicitud marcada como no procesada");
+                
+            } catch (Exception e) {
+                System.err.println("❌ Error durante la reversión: " + e.getMessage());
+                throw new RuntimeException("Error durante la reversión: " + e.getMessage());
+            }
+        } else {
+            // Si no existe en ningún lado, solo actualizamos el estado
+            solicitud.setProcesado(false);
+            repository.save(solicitud);
+            System.out.println("✅ Solicitud marcada como no procesada (no existía en ninguna base de datos)");
         }
     }
 
