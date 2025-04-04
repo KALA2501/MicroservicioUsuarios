@@ -18,6 +18,8 @@ public class SolicitudCentroMedico {
     private String direccion;
     private String correo;
     private String telefono;
+    @Column(name = "url_logo")
+    private String urlLogo;
 
     private boolean procesado = false; // indica si ya fue aprobada o no
 }

@@ -9,6 +9,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.UserRecord;
 import java.util.HashMap;
 import java.util.Map;
+import org.springframework.transaction.annotation.Transactional;
 
 
 
@@ -40,7 +41,7 @@ public class CentroMedicoService {
             centro.setNombre(nuevosDatos.getNombre());
             centro.setDireccion(nuevosDatos.getDireccion());
             centro.setTelefono(nuevosDatos.getTelefono());
-            centro.setURLogo(nuevosDatos.getURLogo());
+            centro.setUrlLogo(nuevosDatos.getUrlLogo());
             return repository.save(centro);
         } else {
             throw new RuntimeException("Centro médico no encontrado con ID: " + id);
@@ -86,4 +87,27 @@ public class CentroMedicoService {
         return guardado;
     }
     
+    @Transactional
+    public void eliminarPorCorreo(String correo) {
+        try {
+            // Primero intentamos encontrar el centro médico
+            Optional<CentroMedico> centro = centroMedicoRepository.findByCorreo(correo);
+            
+            if (centro.isPresent()) {
+                // Si existe, lo eliminamos usando el método delete
+                centroMedicoRepository.delete(centro.get());
+                System.out.println("✅ Centro médico eliminado correctamente: " + correo);
+            } else {
+                System.out.println("⚠️ No se encontró centro médico con el correo: " + correo);
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Error al eliminar centro médico: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Error al eliminar centro médico con correo: " + correo, e);
+        }
+    }
+
+    public boolean existePorCorreo(String correo) {
+        return centroMedicoRepository.existsByCorreo(correo);
+    }
 }

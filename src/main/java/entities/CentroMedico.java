@@ -25,7 +25,9 @@ public class CentroMedico {
     @Column(unique = true, nullable = false)
     private String telefono;
     private String direccion;
-    private String URLogo;
+    @Column(name = "url_logo")
+    private String urlLogo;
+
     @Column(unique = true, nullable = false)
     private String correo;
 
