@@ -1,15 +1,18 @@
 package controllers;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.UserRecord;
 import entities.CentroMedico;
 import entities.Medico;
 import entities.TipoDocumento;
-import services.MedicoService;
+import services.*;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.UUID;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -49,32 +52,48 @@ public class MedicoController {
     )
     @ApiResponse(responseCode = "200", description = "Médico guardado correctamente")
     @PostMapping
-public ResponseEntity<?> guardar(@RequestBody Medico medico) {
-    try {
-        // Validar existencia del centro médico
-        Optional<CentroMedico> centro = service.obtenerCentroPorId(medico.getCentroMedico().getPkId());
-        if (centro.isEmpty()) {
-            return ResponseEntity.badRequest().body("Centro médico no encontrado");
+    public ResponseEntity<?> guardar(@RequestBody Medico medico) {
+        try {
+            Optional<CentroMedico> centro = service.obtenerCentroPorId(medico.getCentroMedico().getPkId());
+            if (centro.isEmpty()) {
+                return ResponseEntity.badRequest().body("Centro médico no encontrado");
+            }
+
+            Optional<TipoDocumento> tipoDoc = service.obtenerTipoDocumentoPorId(medico.getTipoDocumento().getId());
+            if (tipoDoc.isEmpty()) {
+                return ResponseEntity.badRequest().body("Tipo de documento no encontrado");
+            }
+
+            if (medico.getCorreo() == null || medico.getCorreo().isBlank()) {
+                return ResponseEntity.badRequest().body("Correo del médico es obligatorio");
+            }
+
+            // Crear usuario en Firebase Authentication
+            UserRecord.CreateRequest request = new UserRecord.CreateRequest()
+                .setEmail(medico.getCorreo())
+                .setPassword("medico123") // contraseña temporal
+                .setEmailVerified(false)
+                .setDisabled(false);
+
+            UserRecord userRecord = FirebaseAuth.getInstance().createUser(request);
+
+            // Asignar custom claim (rol: medico)
+            Map<String, Object> claims = new HashMap<>();
+            claims.put("role", "medico");
+            FirebaseAuth.getInstance().setCustomUserClaims(userRecord.getUid(), claims);
+
+            // Guardar en base de datos
+            medico.setPkId(UUID.randomUUID().toString());
+            medico.setCentroMedico(centro.get());
+            medico.setTipoDocumento(tipoDoc.get());
+
+            Medico guardado = service.guardar(medico);
+            return ResponseEntity.ok(guardado);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error al crear médico: " + e.getMessage());
         }
-
-        // Validar existencia del tipo de documento
-        Optional<TipoDocumento> tipoDoc = service.obtenerTipoDocumentoPorId(medico.getTipoDocumento().getId());
-        if (tipoDoc.isEmpty()) {
-            return ResponseEntity.badRequest().body("Tipo de documento no encontrado");
-        }
-
-        // Setear entidades válidas
-        medico.setCentroMedico(centro.get());
-        medico.setTipoDocumento(tipoDoc.get());
-
-        // Guardar médico
-        Medico guardado = service.guardar(medico);
-        return ResponseEntity.ok(guardado);
-
-    } catch (Exception e) {
-        return ResponseEntity.status(500).body("Error al crear médico: " + e.getMessage());
     }
-}
 
     @Operation(
         summary = "Eliminar un médico",
@@ -87,22 +106,35 @@ public ResponseEntity<?> guardar(@RequestBody Medico medico) {
     }
 
     @Operation(
-    summary = "Actualizar información de un médico",
-    description = "Modifica los datos de un médico ya registrado"
-)
-@ApiResponse(responseCode = "200", description = "Médico actualizado correctamente")
-@ApiResponse(responseCode = "404", description = "Médico no encontrado")
-@PutMapping("/{id}")
-public ResponseEntity<?> actualizar(@PathVariable String id, @RequestBody Medico medicoActualizado) {
-    Optional<Medico> existente = service.obtenerPorId(id);
-    if (existente.isEmpty()) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Médico no encontrado");
+        summary = "Actualizar información de un médico",
+        description = "Modifica los datos de un médico ya registrado"
+    )
+    @ApiResponse(responseCode = "200", description = "Médico actualizado correctamente")
+    @ApiResponse(responseCode = "404", description = "Médico no encontrado")
+    @PutMapping("/{id}")
+    public ResponseEntity<?> actualizar(@PathVariable String id, @RequestBody Medico medicoActualizado) {
+        Optional<Medico> existente = service.obtenerPorId(id);
+        if (existente.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Médico no encontrado");
+        }
+
+        Optional<CentroMedico> centro = service.obtenerCentroPorId(medicoActualizado.getCentroMedico().getPkId());
+        if (centro.isEmpty()) {
+            return ResponseEntity.badRequest().body("Centro médico no encontrado");
+        }
+
+        Optional<TipoDocumento> tipoDoc = service.obtenerTipoDocumentoPorId(medicoActualizado.getTipoDocumento().getId());
+        if (tipoDoc.isEmpty()) {
+            return ResponseEntity.badRequest().body("Tipo de documento no encontrado");
+        }
+
+        medicoActualizado.setCentroMedico(centro.get());
+        medicoActualizado.setTipoDocumento(tipoDoc.get());
+        medicoActualizado.setPkId(id);
+
+        Medico actualizado = service.guardar(medicoActualizado);
+        return ResponseEntity.ok(actualizado);
     }
-    
-    medicoActualizado.setPkId(id); // Aseguramos que mantenga el mismo ID
-    Medico actualizado = service.guardar(medicoActualizado);
-    return ResponseEntity.ok(actualizado);
-}
 
     @Operation(
         summary = "Listar médicos por centro médico",
@@ -114,7 +146,7 @@ public ResponseEntity<?> actualizar(@PathVariable String id, @RequestBody Medico
         return service.obtenerPorCentroMedico(idCentro);
     }
 
-        @Operation(
+    @Operation(
         summary = "Filtrar médicos",
         description = "Busca médicos por nombre, tarjeta profesional o profesión (solo un filtro a la vez)"
     )
@@ -128,5 +160,4 @@ public ResponseEntity<?> actualizar(@PathVariable String id, @RequestBody Medico
         List<Medico> resultados = service.filtrarMedicos(nombre, tarjeta, profesion);
         return ResponseEntity.ok(resultados);
     }
-
 }

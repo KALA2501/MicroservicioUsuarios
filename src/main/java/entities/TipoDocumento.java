@@ -19,4 +19,8 @@ public class TipoDocumento {
     @Id
     private String id;
     private String tipo;
+
+    public TipoDocumento(String id) {
+        this.id = id;
+    }
 }

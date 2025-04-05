@@ -49,4 +49,7 @@ public class Medico {
     private String genero;
     private String tarjetaProfesional;
     private String urlImagen;
+    @Column(nullable = false)
+    private String correo;
+
 }
