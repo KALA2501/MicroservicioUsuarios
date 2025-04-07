@@ -14,6 +14,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.UserRecord;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -207,4 +210,67 @@ public class PacienteController {
         }
     }
 
+        @PostMapping("/registrar-completo")
+    @Operation(summary = "Registro completo de paciente", description = "Registra un paciente en Firebase y MySQL, y lo vincula con el médico")
+    public ResponseEntity<?> registrarPacienteCompleto(@RequestBody Map<String, Object> data) {
+        try {
+            String correoPaciente = data.get("email").toString();
+            String password = data.get("password").toString();
+
+            // Crear usuario en Firebase Authentication
+            UserRecord.CreateRequest request = new UserRecord.CreateRequest()
+                    .setEmail(correoPaciente)
+                    .setPassword(password)
+                    .setEmailVerified(false)
+                    .setDisabled(false);
+
+            UserRecord userRecord = FirebaseAuth.getInstance().createUser(request);
+
+            // Asignar custom claims
+            Map<String, Object> claims = new HashMap<>();
+            claims.put("role", "paciente");
+            FirebaseAuth.getInstance().setCustomUserClaims(userRecord.getUid(), claims);
+
+            // Crear paciente en base de datos
+            Paciente paciente = new Paciente();
+            paciente.setPkId(UUID.randomUUID().toString());
+            paciente.setNombre(data.get("nombre").toString());
+            paciente.setApellido(data.get("apellido").toString());
+            paciente.setIdDocumento(data.get("idDocumento").toString());
+            paciente.setTelefono(data.get("telefono").toString());
+            paciente.setEmail(data.get("email").toString());
+            paciente.setDireccion(data.getOrDefault("direccion", "").toString());
+            paciente.setCodigoCIE(data.getOrDefault("codigoCIE", "").toString());
+            paciente.setZona(data.getOrDefault("zona", "").toString());
+            paciente.setDistrito(data.getOrDefault("distrito", "").toString());
+            paciente.setGenero(data.getOrDefault("genero", "").toString());
+            paciente.setUrlImagen(data.getOrDefault("urlImagen", "").toString());
+
+            Object etapaRaw = data.get("etapa");
+            int etapa = (etapaRaw instanceof Integer) ? (Integer) etapaRaw : Integer.parseInt(etapaRaw.toString());
+            paciente.setEtapa(etapa);
+
+            String fechaNacStr = data.get("fechaNacimiento").toString();
+            paciente.setFechaNacimiento(Timestamp.valueOf(fechaNacStr + " 00:00:00"));
+
+            Long idCentro = Long.parseLong(data.get("centroMedico").toString());
+            CentroMedico centro = centroMedicoRepository.findById(idCentro)
+                    .orElseThrow(() -> new RuntimeException("Centro médico no encontrado"));
+            paciente.setCentroMedico(centro);
+
+            String idTipoDoc = data.get("tipoDocumento").toString();
+            TipoDocumento tipoDoc = tipoDocumentoRepository.findById(idTipoDoc)
+                    .orElseThrow(() -> new RuntimeException("Tipo de documento no encontrado"));
+            paciente.setTipoDocumento(tipoDoc);
+
+            Paciente guardado = service.guardarConValidacion(paciente);
+            return ResponseEntity.status(HttpStatus.CREATED).body(guardado);
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error al registrar paciente: " + e.getMessage());
+        }
+    }
+    
 }

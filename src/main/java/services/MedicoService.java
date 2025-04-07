@@ -3,6 +3,11 @@ import entities.*;
 import repositories.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthException;
+import com.google.firebase.auth.UserRecord;
+
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
@@ -56,8 +61,28 @@ public class MedicoService {
     }
 
     public void eliminar(String id) {
-        repository.deleteById(id);
+    Optional<Medico> medicoOpt = repository.findById(id);
+
+    if (medicoOpt.isEmpty()) {
+        throw new RuntimeException("Médico no encontrado");
     }
+
+    Medico medico = medicoOpt.get();
+
+    // 1. Eliminar en Firebase Authentication
+    try {
+        UserRecord userRecord = FirebaseAuth.getInstance().getUserByEmail(medico.getCorreo());
+        FirebaseAuth.getInstance().deleteUser(userRecord.getUid());
+        System.out.println("✅ Usuario de Firebase eliminado: " + medico.getCorreo());
+    } catch (FirebaseAuthException e) {
+        System.err.println("❌ Error al eliminar usuario en Firebase: " + e.getMessage());
+        // opcional: continuar con la eliminación local incluso si falla Firebase
+    }
+
+    // 2. Eliminar en base de datos
+    repository.deleteById(id);
+    System.out.println("✅ Médico eliminado de la base de datos con ID: " + id);
+}
 
     public List<Medico> obtenerPorCentroMedico(Long idCentro) {
         return repository.findByCentroMedicoPkId(idCentro);

@@ -12,7 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.*;
-import java.util.UUID;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -101,9 +101,16 @@ public class MedicoController {
     )
     @ApiResponse(responseCode = "200", description = "Médico eliminado correctamente")
     @DeleteMapping("/{id}")
-    public void eliminar(@PathVariable String id) {
-        service.eliminar(id);
+    public ResponseEntity<String> eliminar(@PathVariable String id) {
+        try {
+            service.eliminar(id);
+            return ResponseEntity.ok("Médico eliminado correctamente");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                .body("❌ Error al eliminar el médico: " + e.getMessage());
+        }
     }
+
 
     @Operation(
         summary = "Actualizar información de un médico",
