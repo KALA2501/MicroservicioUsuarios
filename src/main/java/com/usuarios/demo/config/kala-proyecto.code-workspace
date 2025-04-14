@@ -25,6 +25,7 @@
     // 💬 Terminal predeterminada
     "terminal.integrated.defaultProfile.windows": "Git Bash",
     "terminal.integrated.cwd": "${workspaceFolder}",
-    "java.compile.nullAnalysis.mode": "automatic"
+    "java.compile.nullAnalysis.mode": "automatic",
+    "java.configuration.updateBuildConfiguration": "interactive"
   }
 }

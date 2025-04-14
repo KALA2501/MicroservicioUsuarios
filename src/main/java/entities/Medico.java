@@ -1,4 +1,5 @@
 package entities;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -26,7 +27,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public class Medico {
     @Id
     private String pkId;
-    
+
     @ManyToOne
     @JoinColumn(name = "FK_ID_CentroMedico")
     private CentroMedico centroMedico;
