@@ -1,0 +1,30 @@
+{
+  "folders": [
+    {
+      "name": "MicroservicioUsuarios",
+      "path": "C:\\Users\\alani\\Documents\\GitHub\\MicroservicioUsuarios"
+    },
+    {
+      "name": "kala-frontend",
+      "path": "C:\\Users\\alani\\Documents\\GitHub\\kala-frontend"
+    }
+  ],
+  "settings": {
+    // ⚙️ Chat Agent Mode
+    "chat.agent.enabled": true,
+    "chat.codebase.enabled": true,
+    // 🧹 Format on save
+    "editor.formatOnSave": true,
+    // 🔍 Ignorar carpetas innecesarias
+    "files.exclude": {
+      "**/node_modules": true,
+      "**/target": true,
+      "**/.classpath": true,
+      "**/.project": true
+    },
+    // 💬 Terminal predeterminada
+    "terminal.integrated.defaultProfile.windows": "Git Bash",
+    "terminal.integrated.cwd": "${workspaceFolder}",
+    "java.compile.nullAnalysis.mode": "automatic"
+  }
+}
