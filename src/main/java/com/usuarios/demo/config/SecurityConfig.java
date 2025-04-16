@@ -29,13 +29,13 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        System.out.println("✅ SecurityFilterChain personalizado ACTIVADO");
+        System.out.println("\u2705 SecurityFilterChain personalizado ACTIVADO");
         return http
                 .csrf(csrf -> csrf.disable())
-                .formLogin(form -> form.disable()) // ❌ No login HTML
-                .httpBasic(basic -> basic.disable()) // ❌ No auth básica
+                .formLogin(form -> form.disable())
+                .httpBasic(basic -> basic.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/medicos/**").permitAll() // ✅ Deja pasar esto sin token
+                        .requestMatchers("/api/**").permitAll() // ⬆️ Permitir todo para pruebas
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider)
