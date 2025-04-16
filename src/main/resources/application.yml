@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: usuarios-service
+  config:
+    import: "configserver:"
+  cloud:
+    config:
+      uri: http://localhost:8888
+      fail-fast: true
+      name: usuarios-service
+      retry:
+        max-attempts: 5
+        initial-interval: 2000
+
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${random.uuid}
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
+    metadata-map:
+      instanceId: ${spring.application.name}:${random.uuid}
