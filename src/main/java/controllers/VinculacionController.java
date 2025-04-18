@@ -76,7 +76,7 @@ public class VinculacionController {
             @RequestParam String tipoVinculacionId,
             @RequestParam String nuevoTipoVinculacionId) {
         try {
-            VinculacionId id = new VinculacionId(pacienteId, medicoId, Long.valueOf(tipoVinculacionId));
+            VinculacionId id = new VinculacionId(pacienteId, medicoId);
             Vinculacion actualizada = vinculacionService.actualizarVinculacion(id, nuevoTipoVinculacionId);
             return ResponseEntity.ok(actualizada);
         } catch (RuntimeException e) {
@@ -92,7 +92,7 @@ public class VinculacionController {
         @RequestParam String tipoVinculacionId) {
     
         try {
-            VinculacionId id = new VinculacionId(pacienteId, medicoId, Long.valueOf(tipoVinculacionId));
+            VinculacionId id = new VinculacionId(pacienteId, medicoId);
             vinculacionService.eliminarVinculacion(id);
             return ResponseEntity.ok("Vinculación eliminada correctamente.");
         } catch (RuntimeException e) {
