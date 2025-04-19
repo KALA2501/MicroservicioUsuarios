@@ -12,6 +12,17 @@ spring:
         max-attempts: 5
         initial-interval: 2000
 
+  kafka:
+    consumer:
+      bootstrap-servers: localhost:8089
+      group-id: group_id
+      auto-offset-reset: earliest
+      enable-auto-commit: true
+    producer:
+      bootstrap-servers: localhost:8089
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
 eureka:
   client:
     register-with-eureka: true

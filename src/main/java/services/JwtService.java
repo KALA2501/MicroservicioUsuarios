@@ -32,6 +32,15 @@ public class JwtService {
         }
     }
 
+    // Método para extraer el userId del JWT
+    public String extractUserId(String token) {
+        try {
+            return extractAllClaims(token).getStringClaim("user_id");  // Cambia "user_id" por el campo que contiene el ID
+        } catch (Exception e) {
+            throw new RuntimeException("❌ Token inválido o no verificable: " + e.getMessage(), e);
+        }
+    }
+
     public JWTClaimsSet extractAllClaims(String token) throws Exception {
         SignedJWT signedJWT = SignedJWT.parse(token);
 
