@@ -1,6 +1,7 @@
 package repositories;
 
 import entities.Paciente;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -25,5 +26,8 @@ public interface PacienteRepository extends JpaRepository<Paciente, String> {
 
     // Buscar por etapa de enfermedad
     List<Paciente> findByEtapa(Integer etapa);
+
+    // Buscar pacientes directamente por su clave primaria (pkId)
+    Optional<Paciente> findByPkId(String pkId);
 
 }

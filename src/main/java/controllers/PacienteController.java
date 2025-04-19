@@ -31,6 +31,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import java.sql.Timestamp;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/pacientes")
@@ -345,13 +346,46 @@ public class PacienteController {
         }
     }
 
+    @CrossOrigin(origins = "http://localhost:3000")
     @GetMapping("/buscar-por-correo")
-    public ResponseEntity<Paciente> buscarPorCorreo(@RequestParam String email) {
+    public ResponseEntity<?> buscarPorCorreo(@RequestParam String email) {
         try {
+            // Buscar el paciente por correo
             Paciente paciente = service.buscarPorCorreo(email);
-            return ResponseEntity.ok(paciente);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(404).body(null); // Paciente no encontrado
+            if (paciente != null) {
+                return ResponseEntity.ok(paciente);
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body("Paciente con el correo " + email + " no encontrado.");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error al buscar el paciente: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Obtener médicos vinculados a un paciente", description = "Devuelve la lista de médicos asociados a un paciente dado su ID")
+    @ApiResponse(responseCode = "200", description = "Lista de médicos obtenida exitosamente")
+    @ApiResponse(responseCode = "404", description = "Paciente no encontrado")
+    @GetMapping("/{id}/medicos")
+    public ResponseEntity<?> obtenerMedicosPorPaciente(@PathVariable String id) {
+        try {
+            // Buscar las vinculaciones del paciente
+            List<Vinculacion> vinculaciones = vinculacionRepository.findByPaciente_PkId(id);
+
+            if (vinculaciones.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("El paciente no tiene médicos vinculados.");
+            }
+
+            // Obtener los médicos de las vinculaciones
+            List<Medico> medicos = vinculaciones.stream()
+                    .map(Vinculacion::getMedico)
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(medicos);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error al obtener los médicos: " + e.getMessage());
         }
     }
 }
