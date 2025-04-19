@@ -38,6 +38,7 @@ public class Paciente {
     @Column(unique = true, nullable = false)
     private String telefono;
 
+    @Column(name = "email")
     private String email;
     private String direccion;
     private int etapa;

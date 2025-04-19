@@ -49,29 +49,30 @@ public class PacienteService {
 
     @Transactional
     public void eliminar(String id) {
-        System.out.println("🔎 Buscando paciente con ID: " + id);
+        // Buscar paciente por ID
         Paciente paciente = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Paciente no encontrado"));
 
-        System.out.println("✅ Paciente encontrado: " + paciente.getNombre());
-
+        // Obtener las vinculaciones del paciente
         List<Vinculacion> vinculaciones = vinculacionRepository.findByPaciente_PkId(id);
-        System.out.println("🔗 Vinculaciones encontradas: " + vinculaciones.size());
 
-        try {
-            vinculacionRepository.deleteAll(vinculaciones);
-            System.out.println("✅ Vinculaciones eliminadas.");
-        } catch (Exception e) {
-            System.err.println("❌ Error al eliminar vinculaciones: " + e.getMessage());
+        // Si no tiene vinculaciones, lanzar excepción
+        if (vinculaciones.isEmpty()) {
+            throw new RuntimeException("No existen vinculaciones para este paciente.");
         }
 
-        try {
-            repository.delete(paciente);
-            System.out.println("🔥 Paciente eliminado con éxito.");
-        } catch (Exception e) {
-            System.err.println("❌ Error al eliminar paciente: " + e.getMessage());
-            throw e;
+        // Eliminar todas las vinculaciones con los médicos
+        for (Vinculacion vinculacion : vinculaciones) {
+            Medico medico = vinculacion.getMedico();
+            System.out.println("Médico asociado: " + medico.getNombre());
+
+            // Eliminar la vinculación del paciente con el médico
+            vinculacionRepository.delete(vinculacion);
         }
+
+        // Finalmente, eliminar el paciente
+        repository.delete(paciente);
+        System.out.println("Paciente y sus vinculaciones eliminados con éxito.");
     }
 
     public List<Paciente> obtenerPorCentroMedico(Long idCentro) {
@@ -201,6 +202,11 @@ public class PacienteService {
                 .map(Vinculacion::getPaciente)
                 .distinct()
                 .collect(Collectors.toList());
+    }
+
+    public Paciente buscarPorCorreo(String email) {
+        Optional<Paciente> paciente = repository.findByEmail(email);
+        return paciente.orElseThrow(() -> new RuntimeException("Paciente no encontrado"));
     }
 
 }
