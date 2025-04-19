@@ -344,4 +344,14 @@ public class PacienteController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
+
+    @GetMapping("/buscar-por-correo")
+    public ResponseEntity<Paciente> buscarPorCorreo(@RequestParam String email) {
+        try {
+            Paciente paciente = service.buscarPorCorreo(email);
+            return ResponseEntity.ok(paciente);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(404).body(null); // Paciente no encontrado
+        }
+    }
 }

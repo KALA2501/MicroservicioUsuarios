@@ -6,6 +6,7 @@ import entities.CentroMedico;
 import entities.Medico;
 import entities.TipoDocumento;
 import services.*;
+import repositories.MedicoRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -26,6 +27,8 @@ public class MedicoController {
 
     @Autowired
     private MedicoService service;
+    private JwtService jwtService;
+    private MedicoRepository medicoRepository;
 
     @Operation(summary = "Obtener todos los médicos", description = "Retorna una lista de todos los médicos registrados en el sistema")
     @ApiResponse(responseCode = "200", description = "Lista de médicos obtenida correctamente")
@@ -192,6 +195,25 @@ public class MedicoController {
         } else {
             System.out.println("❌ Médico no encontrado");
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Médico no encontrado");
+        }
+    }
+
+    @Operation(summary = "Obtener ID del médico autenticado", description = "Devuelve el ID del médico asociado al usuario autenticado")
+    @GetMapping("/medico-id")
+    public ResponseEntity<?> obtenerMedicoId(@RequestHeader("Authorization") String token) {
+        try {
+            // Extraer el correo del médico desde el token
+            String correoMedico = jwtService.extractUsername(token.replace("Bearer ", ""));
+
+            // Buscar el médico asociado al correo extraído
+            Medico medico = medicoRepository.findByCorreo(correoMedico)
+                    .orElseThrow(() -> new RuntimeException("Médico no encontrado"));
+
+            // Devolver el ID del médico
+            return ResponseEntity.ok(medico.getPkId());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error al obtener el médico: " + e.getMessage());
         }
     }
 

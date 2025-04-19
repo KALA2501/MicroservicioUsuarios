@@ -38,17 +38,17 @@ public class VinculacionService {
 
     public Vinculacion crearVinculacion(String pacienteId, String medicoId, String tipoVinculacionId) {
         Paciente paciente = pacienteRepository.findById(pacienteId)
-            .orElseThrow(() -> new RuntimeException("Paciente no encontrado"));
+                .orElseThrow(() -> new RuntimeException("Paciente no encontrado"));
 
         Medico medico = medicoRepository.findById(medicoId)
-            .orElseThrow(() -> new RuntimeException("Médico no encontrado"));
+                .orElseThrow(() -> new RuntimeException("Médico no encontrado"));
 
         TipoVinculacion tipo = tipoVinculacionRepository.findById(Long.valueOf(tipoVinculacionId))
-            .orElseThrow(() -> new RuntimeException("Tipo de vinculación no encontrado"));
+                .orElseThrow(() -> new RuntimeException("Tipo de vinculación no encontrado"));
 
         // Verificar duplicado (sin usar getPkId)
         Optional<Vinculacion> existente = vinculacionRepository
-            .findByPacienteAndMedicoAndTipoVinculacion(paciente, medico, tipo);
+                .findByPacienteAndMedicoAndTipoVinculacion(paciente, medico, tipo);
 
         if (existente.isPresent()) {
             throw new RuntimeException("La vinculación ya existe entre ese paciente, médico y tipo.");
@@ -65,7 +65,7 @@ public class VinculacionService {
 
     public List<Map<String, String>> obtenerVinculacionesPorPaciente(String tipoDocumentoId, String idDocumento) {
         Paciente paciente = pacienteRepository.findByTipoDocumento_IdAndIdDocumento(tipoDocumentoId, idDocumento)
-            .orElseThrow(() -> new RuntimeException("Paciente no encontrado"));
+                .orElseThrow(() -> new RuntimeException("Paciente no encontrado"));
 
         List<Vinculacion> vinculaciones = vinculacionRepository.findByPaciente(paciente);
 
@@ -80,10 +80,10 @@ public class VinculacionService {
 
     public Vinculacion actualizarVinculacion(VinculacionId vinculacionId, String nuevoTipoVinculacionId) {
         Vinculacion vinculacion = vinculacionRepository.findById(vinculacionId)
-            .orElseThrow(() -> new RuntimeException("Vinculación no encontrada"));
+                .orElseThrow(() -> new RuntimeException("Vinculación no encontrada"));
 
         TipoVinculacion nuevoTipo = tipoVinculacionRepository.findById(Long.valueOf(nuevoTipoVinculacionId))
-            .orElseThrow(() -> new RuntimeException("Tipo de vinculación no encontrado"));
+                .orElseThrow(() -> new RuntimeException("Tipo de vinculación no encontrado"));
 
         vinculacion.setTipoVinculacion(nuevoTipo);
 
@@ -94,17 +94,20 @@ public class VinculacionService {
         return vinculacionRepository.save(vinculacion);
     }
 
-    public void eliminarVinculacion(VinculacionId id) {
-        Vinculacion vinculacion = vinculacionRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Vinculación no encontrada"));
-    
+    public void eliminarVinculacion(String pacienteId, String medicoId) {
+        VinculacionId vinculacionId = new VinculacionId(pacienteId, medicoId); // Crea el VinculacionId usando
+                                                                               // pacienteId y medicoId
+
+        Vinculacion vinculacion = vinculacionRepository.findById(vinculacionId)
+                .orElseThrow(() -> new RuntimeException("Vinculación no encontrada"));
+
+        // Eliminar la vinculación
         vinculacionRepository.delete(vinculacion);
     }
-    
 
     public List<Map<String, String>> obtenerVinculacionesPorCentroMedico(Long idCentro) {
         List<Vinculacion> vinculaciones = vinculacionRepository.findByPaciente_CentroMedico_PkId(idCentro);
-    
+
         return vinculaciones.stream().map(v -> {
             Map<String, String> datos = new HashMap<>();
             datos.put("paciente", v.getPaciente().getNombre() + " " + v.getPaciente().getApellido());
@@ -114,6 +117,5 @@ public class VinculacionService {
             return datos;
         }).collect(Collectors.toList());
     }
-    
-    
+
 }

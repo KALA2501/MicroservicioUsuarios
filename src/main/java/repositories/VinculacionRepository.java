@@ -42,4 +42,8 @@ public interface VinculacionRepository extends JpaRepository<Vinculacion, Vincul
     @Query("DELETE FROM Vinculacion v WHERE v.paciente.pkId = :pkId")
     void deleteAllByPaciente_PkId(String pkId);
 
+    @Modifying
+    @Query("DELETE FROM Vinculacion v WHERE v.medico.pkId = :pkId")
+    void deleteAllByMedico_PkId(String pkId);
+
 }

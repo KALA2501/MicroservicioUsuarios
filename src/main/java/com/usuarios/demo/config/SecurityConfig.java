@@ -32,21 +32,21 @@ public class SecurityConfig {
         System.out.println("✅ SecurityFilterChain activo (modo JWT)");
 
         http
-            .csrf(csrf -> csrf.disable())
-            .formLogin(form -> form.disable())
-            .httpBasic(basic -> basic.disable())
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                    "/api/auth/**",             // Login, registro
-                    "/swagger-ui/**",           // Swagger UI
-                    "/v3/api-docs/**",          // OpenAPI docs
-                    "/actuator/**"              // Monitoring endpoints
-                ).permitAll()
-                .anyRequest().authenticated()  // Todo lo demás requiere token
-            )
-            .authenticationProvider(authenticationProvider)
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .csrf(csrf -> csrf.disable())
+                .formLogin(form -> form.disable())
+                .httpBasic(basic -> basic.disable())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(
+                                "/api/auth/**", // Login, registro
+                                "/swagger-ui/**", // Swagger UI
+                                "/v3/api-docs/**", // OpenAPI docs
+                                "/actuator/**" // Monitoring endpoints
+                        ).permitAll()
+                        .anyRequest().authenticated() // Todo lo demás requiere token
+                )
+                .authenticationProvider(authenticationProvider)
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
