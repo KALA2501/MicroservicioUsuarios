@@ -1,36 +1,35 @@
-HELP.md
-target/
-!.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
+# 🔒 Seguridad
+.env
+src/main/resources/firebase-service-account.json
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
+# 🛠️ Maven
+/target/
+*.log
 
-### IntelliJ IDEA ###
-.idea
-*.iws
+# ⚙️ IntelliJ / VSCode / Eclipse
+.idea/
+.vscode/
 *.iml
 *.ipr
+*.iws
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
+# ⚙️ SO / Sistema
+.DS_Store
+Thumbs.db
+*.sock
+
+# 📦 Node.js (por si tienes frontend dentro del mismo repo)
+node_modules/
+dist/
 build/
-!**/src/main/**/build/
-!**/src/test/**/build/
 
-### VS Code ###
-.vscode/
+# 🧪 Test outputs
+/test-output/
+
+# 💥 Otros archivos temporales
+*.swp
+*.tmp
+*.bak
+
+# 🧾 MySQL sockets y archivos raros
 schemas/mysql.sock
-
-.fake

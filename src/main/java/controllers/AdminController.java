@@ -24,7 +24,7 @@ public class AdminController {
 
     @Autowired
     private AdminService service;
-    
+
     @Autowired
     private CentroMedicoService centroMedicoService;
 
@@ -32,35 +32,32 @@ public class AdminController {
     public List<Admin> obtenerTodos() {
         return service.obtenerTodos();
     }
+
     @GetMapping("/usuarios-firebase")
     public ResponseEntity<Map<String, Object>> obtenerUsuariosFirebaseAgrupados() {
         try {
             System.out.println("\n🔄 Iniciando obtención de usuarios de Firebase...");
-            
+
             Map<String, Object> response = new HashMap<>();
             Map<String, List<Map<String, Object>>> usuariosPorRol = new HashMap<>();
             Map<String, Integer> conteoPorRol = new HashMap<>();
 
             // Inicializar las listas para cada rol
-            String[] roles = {"centro_medico", "doctor", "paciente", "sin_rol"};
+            String[] roles = { "centro_medico", "doctor", "paciente", "sin_rol" };
             for (String rol : roles) {
                 usuariosPorRol.put(rol, new ArrayList<>());
                 conteoPorRol.put(rol, 0);
             }
 
-            // Obtener todos los usuarios de Firebase
             ListUsersPage page = FirebaseAuth.getInstance().listUsers(null);
             System.out.println("📥 Obteniendo usuarios de Firebase...");
 
             for (ExportedUserRecord user : page.iterateAll()) {
-                // Ignorar usuarios sin email o el admin
                 if (user.getEmail() == null || user.getEmail().equals("admin@kala.com")) {
                     continue;
                 }
 
                 System.out.println("\n👤 Procesando usuario: " + user.getEmail());
-
-                // Crear objeto de usuario con todos los campos necesarios
                 Map<String, Object> userData = new HashMap<>();
                 userData.put("uid", user.getUid());
                 userData.put("email", user.getEmail());
@@ -71,10 +68,9 @@ public class AdminController {
                 userData.put("creationTime", user.getUserMetadata().getCreationTimestamp());
                 userData.put("lastSignInTime", user.getUserMetadata().getLastSignInTimestamp());
 
-                // Determinar el rol del usuario
                 String rol = "sin_rol";
                 Map<String, Object> claims = user.getCustomClaims();
-                
+
                 if (claims != null && claims.containsKey("rol")) {
                     rol = claims.get("rol").toString();
                     System.out.println("✅ Rol encontrado: " + rol);
@@ -82,29 +78,24 @@ public class AdminController {
                     System.out.println("⚠️ Usuario sin rol: " + user.getEmail());
                 }
 
-                // Asegurarse de que el rol sea válido
                 if (!usuariosPorRol.containsKey(rol)) {
                     System.out.println("⚠️ Rol no reconocido '" + rol + "', asignando a sin_rol");
                     rol = "sin_rol";
                 }
 
-                // Agregar usuario a su grupo correspondiente
                 usuariosPorRol.get(rol).add(userData);
                 conteoPorRol.put(rol, conteoPorRol.get(rol) + 1);
                 System.out.println("✅ Usuario agregado al grupo: " + rol);
             }
 
-            // Preparar respuesta con la estructura exacta que espera el frontend
             response.put("usuariosPorRol", usuariosPorRol);
             response.put("conteoPorRol", conteoPorRol);
             response.put("totalUsuarios", conteoPorRol.values().stream().mapToInt(Integer::intValue).sum());
 
-            // Imprimir resumen detallado
             System.out.println("\n📊 Resumen de usuarios por rol:");
             usuariosPorRol.forEach((rol, usuarios) -> {
                 System.out.println(rol + ": " + usuarios.size() + " usuarios");
-                System.out.println("Usuarios en este rol:");
-                usuarios.forEach(u -> System.out.println("  - " + u.get("email") + " (UID: " + u.get("uid") + ")"));
+                usuarios.forEach(u -> System.out.println("  - " + u.get("email")));
             });
 
             return ResponseEntity.ok(response);
@@ -118,12 +109,8 @@ public class AdminController {
             return ResponseEntity.status(500).body(errorResponse);
         }
     }
-    
 
-    @Operation(
-        summary = "Eliminar usuario por UID",
-        description = "Elimina un usuario de Firebase y de la base de datos por su UID"
-    )
+    @Operation(summary = "Eliminar usuario por UID", description = "Elimina un usuario de Firebase y de la base de datos por su UID")
     @ApiResponse(responseCode = "200", description = "Usuario eliminado correctamente")
     @ApiResponse(responseCode = "500", description = "Error al eliminar el usuario")
     @DeleteMapping("/usuarios-firebase/{uid}")
@@ -132,9 +119,9 @@ public class AdminController {
             // 1. Obtener información del usuario antes de eliminarlo
             UserRecord user = FirebaseAuth.getInstance().getUser(uid);
             String correo = user.getEmail();
-            
+
             System.out.println("🔄 Iniciando proceso de eliminación para usuario: " + correo);
-            
+
             // 2. Actualizar la solicitud primero
             try {
                 service.actualizarSolicitudAlEliminarUsuario(correo);
@@ -142,7 +129,7 @@ public class AdminController {
             } catch (Exception e) {
                 System.out.println("⚠️ No se encontró solicitud para actualizar");
             }
-            
+
             // 3. Eliminar de la base de datos MySQL
             try {
                 centroMedicoService.eliminarPorCorreo(correo);
@@ -150,18 +137,18 @@ public class AdminController {
             } catch (Exception e) {
                 System.out.println("⚠️ Error al eliminar de MySQL: " + e.getMessage());
             }
-            
+
             // 4. Finalmente eliminar de Firebase
             FirebaseAuth.getInstance().deleteUser(uid);
             System.out.println("✅ Usuario eliminado de Firebase");
-            
+
             return ResponseEntity.ok("✅ Usuario eliminado completamente del sistema");
-            
+
         } catch (Exception e) {
             System.err.println("❌ Error en el proceso de eliminación: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(500)
-                .body("❌ Error al eliminar usuario: " + e.getMessage());
+                    .body("❌ Error al eliminar usuario: " + e.getMessage());
         }
     }
 
@@ -181,13 +168,13 @@ public class AdminController {
         try {
             UserRecord user = FirebaseAuth.getInstance().getUser(uid);
             Map<String, Object> claims = user.getCustomClaims();
-            
+
             Map<String, Object> response = new HashMap<>();
             response.put("uid", uid);
             response.put("email", user.getEmail());
             response.put("rol", claims != null ? claims.get("rol") : "sin_rol");
             response.put("claims", claims);
-            
+
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             e.printStackTrace();
@@ -227,10 +214,7 @@ public class AdminController {
         }
     }
 
-    @Operation(
-        summary = "Eliminar usuario por correo electrónico",
-        description = "Elimina un usuario de Firebase y de la base de datos por su correo electrónico"
-    )
+    @Operation(summary = "Eliminar usuario por correo electrónico", description = "Elimina un usuario de Firebase y de la base de datos por su correo electrónico")
     @ApiResponse(responseCode = "200", description = "Usuario eliminado correctamente")
     @ApiResponse(responseCode = "500", description = "Error al eliminar el usuario")
     @DeleteMapping("/usuarios-firebase/email/{email}")

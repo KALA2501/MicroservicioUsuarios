@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.UserRecord;
+import com.google.firebase.auth.UserRecord.CreateRequest;
 import com.google.firebase.auth.FirebaseAuthException;
 
 import java.util.List;
@@ -32,6 +33,7 @@ public class SolicitudCentroMedicoService {
         if (repository.existsByTelefono(solicitud.getTelefono())) {
             throw new RuntimeException("Ya existe una solicitud con ese teléfono");
         }
+
         return repository.save(solicitud);
     }
 
@@ -48,7 +50,7 @@ public class SolicitudCentroMedicoService {
 
     public void procesarYCrearUsuario(Long id, String rol) {
         SolicitudCentroMedico solicitud = repository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Solicitud no encontrada"));
+                .orElseThrow(() -> new RuntimeException("Solicitud no encontrada"));
 
         solicitud.setProcesado(true);
         repository.save(solicitud);
@@ -66,10 +68,10 @@ public class SolicitudCentroMedicoService {
             if (errorCode.equals("USER_NOT_FOUND")) {
                 try {
                     UserRecord.CreateRequest request = new UserRecord.CreateRequest()
-                        .setEmail(solicitud.getCorreo())
-                        .setPassword("KalaTemporal123")
-                        .setEmailVerified(false)
-                        .setDisabled(false);
+                            .setEmail(solicitud.getCorreo())
+                            .setPassword("KalaTemporal123")
+                            .setEmailVerified(false)
+                            .setDisabled(false);
 
                     UserRecord nuevoUsuario = FirebaseAuth.getInstance().createUser(request);
 
@@ -90,7 +92,8 @@ public class SolicitudCentroMedicoService {
                             FirebaseAuth.getInstance().setCustomUserClaims(user.getUid(), claims);
                             System.out.println("✅ Usuario existente actualizado con rol: " + rol);
                         } catch (com.google.firebase.auth.FirebaseAuthException finalEx) {
-                            throw new RuntimeException("No se pudo actualizar el usuario existente: " + finalEx.getMessage());
+                            throw new RuntimeException(
+                                    "No se pudo actualizar el usuario existente: " + finalEx.getMessage());
                         }
                     } else {
                         throw new RuntimeException("No se pudo crear el usuario en Firebase: " + ex.getMessage());
@@ -131,7 +134,7 @@ public class SolicitudCentroMedicoService {
     @Transactional
     public void revertirProcesado(Long id) {
         SolicitudCentroMedico solicitud = repository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Solicitud no encontrada"));
+                .orElseThrow(() -> new RuntimeException("Solicitud no encontrada"));
 
         System.out.println("🔄 Iniciando proceso de reversión para: " + solicitud.getCorreo());
 
@@ -157,18 +160,18 @@ public class SolicitudCentroMedicoService {
                     centroMedicoRepository.deleteByCorreo(solicitud.getCorreo());
                     System.out.println("✅ Eliminado de la base de datos");
                 }
-                
+
                 if (existeEnFirebase) {
                     UserRecord user = FirebaseAuth.getInstance().getUserByEmail(solicitud.getCorreo());
                     FirebaseAuth.getInstance().deleteUser(user.getUid());
                     System.out.println("✅ Eliminado de Firebase");
                 }
-                
+
                 // Marcar como no procesado
                 solicitud.setProcesado(false);
                 repository.save(solicitud);
                 System.out.println("✅ Solicitud marcada como no procesada");
-                
+
             } catch (Exception e) {
                 System.err.println("❌ Error durante la reversión: " + e.getMessage());
                 throw new RuntimeException("Error durante la reversión: " + e.getMessage());

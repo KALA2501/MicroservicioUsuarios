@@ -1,7 +1,6 @@
 package controllers;
 
 import entities.CentroMedico;
-import entities.Medicamentos;
 import entities.Paciente;
 import entities.TipoDocumento;
 import entities.Vinculacion;
@@ -22,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.UserRecord;
+import com.google.firebase.auth.FirebaseAuthException;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -212,33 +212,6 @@ public class PacienteController {
         }
     }
 
-    @Operation(summary = "Actualizar medicamentos de un paciente", description = "Permite reemplazar completamente los medicamentos de un paciente por una nueva lista")
-    @PutMapping("/{id}/medicamentos")
-    public ResponseEntity<?> actualizarMedicamentos(
-            @PathVariable String id,
-            @RequestBody List<Medicamentos> nuevosMedicamentos) {
-
-        try {
-            Paciente actualizado = service.actualizarMedicamentos(id, nuevosMedicamentos);
-            return ResponseEntity.ok(actualizado);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("Error al actualizar medicamentos: " + e.getMessage());
-        }
-    }
-
-    @Operation(summary = "Eliminar un medicamento", description = "Elimina un medicamento específico de un paciente")
-    @DeleteMapping("/medicamentos/{idMedicamento}")
-    public ResponseEntity<?> eliminarMedicamento(@PathVariable Long idMedicamento) {
-        try {
-            service.eliminarMedicamento(idMedicamento);
-            return ResponseEntity.ok("Medicamento eliminado correctamente");
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("Error al eliminar medicamento: " + e.getMessage());
-        }
-    }
-
     @PostMapping("/registrar-completo")
     @Operation(summary = "Registro completo de paciente", description = "Registra un paciente en Firebase y MySQL, y lo vincula con el médico")
     public ResponseEntity<?> registrarPacienteCompleto(@RequestBody Map<String, Object> data,
@@ -253,6 +226,16 @@ public class PacienteController {
                     .setPassword(password)
                     .setEmailVerified(false)
                     .setDisabled(false);
+
+            // Verificar si el correo ya existe en Firebase
+            try {
+                FirebaseAuth.getInstance().getUserByEmail(correoPaciente);
+                return ResponseEntity.status(HttpStatus.CONFLICT).body("El correo ya está registrado");
+            } catch (FirebaseAuthException e) {
+                if (!e.getAuthErrorCode().name().equals("USER_NOT_FOUND")) {
+                    throw e; // Si el error no es USER_NOT_FOUND, relanzar la excepción
+                }
+            }
 
             UserRecord userRecord = FirebaseAuth.getInstance().createUser(createRequest);
 

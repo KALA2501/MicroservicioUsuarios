@@ -32,6 +32,11 @@ public class VinculacionController {
             @RequestParam String tipoVinculacionId) {
 
         try {
+            System.out.println("📥 Datos recibidos para crear vinculación:");
+            System.out.println("Paciente ID: " + pacienteId);
+            System.out.println("Médico ID: " + medicoId);
+            System.out.println("Tipo de Vinculación ID: " + tipoVinculacionId);
+
             Vinculacion vinculacion = vinculacionService.crearVinculacion(pacienteId, medicoId, tipoVinculacionId);
             return ResponseEntity.ok(vinculacion);
         } catch (RuntimeException e) {
