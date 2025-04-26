@@ -1,0 +1,25 @@
+package com.usuarios.demo.entities;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+@Entity
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class SolicitudCentroMedico {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String nombre;
+    private String direccion;
+    private String correo;
+    private String telefono;
+    @Column(name = "url_logo")
+    private String urlLogo;
+
+    private boolean procesado = false; // indica si ya fue aprobada o no
+}

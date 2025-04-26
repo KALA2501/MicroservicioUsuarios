@@ -4,8 +4,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.*;
 import org.springframework.stereotype.Service;
 
-import entities.Medico;
-import repositories.MedicoRepository;
+import com.usuarios.demo.entities.*;
+import com.usuarios.demo.repositories.*;
 
 import java.util.Optional;
 
