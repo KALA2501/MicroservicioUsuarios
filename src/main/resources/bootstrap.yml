@@ -3,8 +3,6 @@ spring:
     name: usuarios-service
   config:
     import: optional:configserver:http://config-server:8888/
-  profiles:
-    active: prod
 
 eureka:
   client:
