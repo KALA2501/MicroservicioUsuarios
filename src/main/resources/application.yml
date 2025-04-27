@@ -1,16 +1,9 @@
 spring:
   application:
     name: usuarios-service
+
   config:
-    import: "configserver:"
-  cloud:
-    config:
-      uri: http://config-server:8888
-      fail-fast: true
-      name: usuarios-service
-      retry:
-        max-attempts: 5
-        initial-interval: 2000
+    import: "configserver:http://config-server:8888"
 
 eureka:
   client:
