@@ -1,8 +1,5 @@
 spring:
   datasource:
-    url: jdbc:mysql://mysql:3306/kala
-    username: root
-    password: admin
-    hikari:
-      initialization-fail-timeout: -1
-      connection-timeout: 30000
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
