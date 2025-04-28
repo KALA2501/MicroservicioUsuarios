@@ -111,15 +111,31 @@ public class PacienteController {
                     .orElseThrow(() -> new RuntimeException("Tipo de documento no encontrado"));
             paciente.setTipoDocumento(tipoDoc);
 
+            // Crear usuario en Firebase Authentication
+            UserRecord userRecord;
+            try {
+                userRecord = FirebaseAuth.getInstance().getUserByEmail(paciente.getEmail());
+            } catch (Exception e) {
+                UserRecord.CreateRequest request = new UserRecord.CreateRequest()
+                        .setEmail(paciente.getEmail())
+                        .setPassword("paciente123") // contraseña temporal
+                        .setEmailVerified(false)
+                        .setDisabled(false);
+                userRecord = FirebaseAuth.getInstance().createUser(request);
+            }
+
+            // Asignar custom claim (rol: paciente)
+            Map<String, Object> claims = new HashMap<>();
+            claims.put("role", "paciente");
+            FirebaseAuth.getInstance().setCustomUserClaims(userRecord.getUid(), claims);
+
             // VALIDACIÓN DE DUPLICADOS + GUARDADO
             Paciente nuevo = service.guardarConValidacion(paciente);
             return ResponseEntity.status(HttpStatus.CREATED).body(nuevo);
 
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error al crear paciente: " + e.getMessage());
+                    .body("Error al guardar paciente: " + e.getMessage());
         }
     }
 

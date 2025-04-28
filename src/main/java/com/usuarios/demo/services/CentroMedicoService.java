@@ -50,6 +50,7 @@ public class CentroMedicoService {
     @Autowired
     private CentroMedicoRepository centroMedicoRepository;
 
+    @Transactional
     public CentroMedico registrarCentroMedico(CentroMedico centro) {
         // Validar campos obligatorios
         if (centro.getNombre() == null || centro.getCorreo() == null || centro.getTelefono() == null) {
@@ -58,30 +59,38 @@ public class CentroMedicoService {
 
         // Verificar si el correo ya existe
         if (centroMedicoRepository.existsByCorreo(centro.getCorreo())) {
-            throw new RuntimeException("Centro ya existe");
+            throw new RuntimeException("Centro ya existe con ese correo");
         }
 
-        // Guardar en la base de datos
+        // Guardar primero en la base de datos
         CentroMedico guardado = centroMedicoRepository.save(centro);
 
-        // Crear en Firebase Authentication
         try {
+            // Crear usuario en Firebase
             UserRecord.CreateRequest request = new UserRecord.CreateRequest()
                     .setEmail(guardado.getCorreo())
-                    .setPassword("KalaTemporal123") // contraseña temporal
+                    .setPassword("KalaTemporal123") // Contraseña temporal
                     .setEmailVerified(false)
                     .setDisabled(false);
 
             UserRecord userRecord = FirebaseAuth.getInstance().createUser(request);
 
+            // Asignar custom claim correctamente ("role")
             Map<String, Object> claims = new HashMap<>();
-            claims.put("rol", "centro_medico");
+            claims.put("role", "centro_medico");
+
             FirebaseAuth.getInstance().setCustomUserClaims(userRecord.getUid(), claims);
 
-            System.out.println("✅ Usuario creado y rol asignado: centro_medico");
+            System.out.println("✅ Usuario creado y rol asignado correctamente: " + guardado.getCorreo());
         } catch (Exception e) {
             e.printStackTrace();
-            // (Opcional) Revertir si falla la creación en Firebase
+            System.err
+                    .println("❌ Error al crear usuario en Firebase. Revirtiendo centro médico en la base de datos...");
+
+            // Rollback manual: eliminar el centro médico que guardamos si Firebase falla
+            centroMedicoRepository.deleteById(guardado.getPkId());
+
+            throw new RuntimeException("Error al registrar centro médico: " + e.getMessage());
         }
 
         return guardado;
