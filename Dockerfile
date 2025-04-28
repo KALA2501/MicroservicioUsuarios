@@ -2,8 +2,9 @@ FROM eclipse-temurin:21-jdk-jammy
 
 WORKDIR /app
 
-COPY target/*.jar app.jar
+COPY wait-for-mysql.sh wait-for-mysql.sh
+RUN chmod +x wait-for-mysql.sh
 
-EXPOSE 9091
+COPY target/app.jar app.jar
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["./wait-for-mysql.sh", "mysql", "3306"]
