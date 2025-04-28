@@ -3,3 +3,6 @@ spring:
     url: jdbc:mysql://mysql:3306/kala
     username: root
     password: admin
+    hikari:
+      initialization-fail-timeout: -1
+      connection-timeout: 30000
