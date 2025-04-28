@@ -4,9 +4,7 @@ spring:
   cloud:
     config:
       uri: http://config-server:8888
-  config:
-    import: "configserver:http://config-server:8888"
-
+      
 eureka:
   client:
     register-with-eureka: true
