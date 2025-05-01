@@ -20,7 +20,3 @@ eureka:
   instance:
     prefer-ip-address: true
     instance-id: ${spring.application.name}:${random.uuid}
-    lease-renewal-interval-in-seconds: 10
-    lease-expiration-duration-in-seconds: 30
-    metadata-map:
-      instanceId: ${spring.application.name}:${random.uuid}
