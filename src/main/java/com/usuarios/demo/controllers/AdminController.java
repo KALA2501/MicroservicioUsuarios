@@ -16,6 +16,9 @@ import java.util.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import org.springframework.http.HttpStatus;
+
+import com.usuarios.demo.utils.CorregirCustomClaims;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -43,7 +46,7 @@ public class AdminController {
             Map<String, Integer> conteoPorRol = new HashMap<>();
 
             // Inicializar las listas para cada rol
-            String[] roles = { "centro_medico", "doctor", "paciente", "sin_rol" };
+            String[] roles = { "centro_medico", "doctor", "medico", "paciente", "sin_rol" };
             for (String rol : roles) {
                 usuariosPorRol.put(rol, new ArrayList<>());
                 conteoPorRol.put(rol, 0);
@@ -68,19 +71,16 @@ public class AdminController {
                 userData.put("creationTime", user.getUserMetadata().getCreationTimestamp());
                 userData.put("lastSignInTime", user.getUserMetadata().getLastSignInTimestamp());
 
-                String rol = "sin_rol";
                 Map<String, Object> claims = user.getCustomClaims();
-
+                System.out.println("🔍 Claims del usuario: " + claims);
+                String rol = "sin_rol";
                 if (claims != null && claims.containsKey("rol")) {
                     rol = claims.get("rol").toString();
-                    System.out.println("✅ Rol encontrado: " + rol);
-                } else {
-                    System.out.println("⚠️ Usuario sin rol: " + user.getEmail());
                 }
 
                 if (!usuariosPorRol.containsKey(rol)) {
-                    System.out.println("⚠️ Rol no reconocido '" + rol + "', asignando a sin_rol");
-                    rol = "sin_rol";
+                    usuariosPorRol.put(rol, new ArrayList<>());
+                    conteoPorRol.put(rol, 0);
                 }
 
                 usuariosPorRol.get(rol).add(userData);
@@ -234,4 +234,14 @@ public class AdminController {
         }
     }
 
+    @GetMapping("/corregir-claims")
+    public ResponseEntity<String> corregirClaims() {
+        try {
+            new CorregirCustomClaims().corregirClaims();
+            return ResponseEntity.ok("✅ Claims corregidos exitosamente");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("❌ Error al corregir claims: " + e.getMessage());
+        }
+    }
 }
