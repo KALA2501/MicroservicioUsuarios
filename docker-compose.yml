@@ -1,0 +1,17 @@
+version: "3"
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: mysql_kala
+    ports: 
+      - "3307:3306"
+    environment: 
+      MYSQL_ROOT_PASSWORD: admin
+      MYSQL_DATABASE: microserviciousuario
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  mysql_data:
+
