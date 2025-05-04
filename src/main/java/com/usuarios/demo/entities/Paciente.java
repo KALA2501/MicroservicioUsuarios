@@ -14,11 +14,11 @@ public class Paciente {
     @Id
     @Column(name = "pk_id", length = 50)
     private String pkId;
+    private ContactoEmergencia contactoEmergencia;
 
     @ManyToOne
     @JoinColumn(name = "FK_ID_CentroMedico")
     private CentroMedico centroMedico;
-
     private String nombre;
     private String apellido;
 
@@ -31,7 +31,6 @@ public class Paciente {
 
     @Column(name = "fecha_nacimiento")
     private Timestamp fechaNacimiento;
-
     @Column(name = "codigoCIE")
     private String codigoCIE;
 
