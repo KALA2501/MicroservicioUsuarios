@@ -3,6 +3,7 @@ package com.usuarios.demo.entities;
 import jakarta.persistence.*;
 import lombok.*;
 import java.sql.Timestamp;
+import java.util.List;
 
 @Entity
 @Getter
@@ -14,11 +15,11 @@ public class Paciente {
     @Id
     @Column(name = "pk_id", length = 50)
     private String pkId;
-    private ContactoEmergencia contactoEmergencia;
 
     @ManyToOne
     @JoinColumn(name = "FK_ID_CentroMedico")
     private CentroMedico centroMedico;
+
     private String nombre;
     private String apellido;
 
@@ -31,6 +32,7 @@ public class Paciente {
 
     @Column(name = "fecha_nacimiento")
     private Timestamp fechaNacimiento;
+
     @Column(name = "codigoCIE")
     private String codigoCIE;
 
@@ -39,6 +41,7 @@ public class Paciente {
 
     @Column(name = "email")
     private String email;
+
     private String direccion;
     private int etapa;
     private String zona;
@@ -47,4 +50,7 @@ public class Paciente {
 
     @Column(name = "url_imagen")
     private String urlImagen;
+
+    @OneToMany(mappedBy = "paciente", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ContactoEmergencia> contactosEmergencia;
 }
