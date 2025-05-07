@@ -6,13 +6,15 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import com.usuarios.demo.services.*;
+import com.usuarios.demo.services.JwtService;
 
 import java.io.IOException;
+import java.util.List;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -22,8 +24,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain) throws ServletException, IOException {
+                                    HttpServletResponse response,
+                                    FilterChain filterChain) throws ServletException, IOException {
         final String authHeader = request.getHeader("Authorization");
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -35,19 +37,30 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String email;
 
         try {
-            email = jwtService.extractUsername(jwt); // Extraído desde Firebase
+            email = jwtService.extractUsername(jwt);
+            String rol;
+
+            // Verificar si el usuario es el administrador quemado
+            if ("admin@kala.com".equals(email)) { // Usuario quemado
+                rol = "ADMIN"; // Asignar rol ADMIN al administrador quemado
+            } else {
+                rol = jwtService.extractStringClaim(jwt, "rol"); // Extraer rol del token para otros usuarios
+            }
+
+            if (email != null && rol != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + rol.toUpperCase()));
+
+                var authToken = new UsernamePasswordAuthenticationToken(email, null, authorities);
+                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(authToken);
+
+                System.out.println("✅ Usuario autenticado: " + email);
+                System.out.println("🔑 Rol asignado: " + rol);
+            }
         } catch (Exception e) {
-            System.out.println("❌ Error al extraer el email del token: " + e.getMessage());
+            System.out.println("❌ Error al procesar el token: " + e.getMessage());
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token inválido o no verificable");
             return;
-        }
-
-        if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            // 🔐 Solo confiamos en la validación previa del token
-            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(email, null, null);
-            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-            SecurityContextHolder.getContext().setAuthentication(authToken);
-            System.out.println("✅ Usuario autenticado con Firebase: " + email);
         }
 
         filterChain.doFilter(request, response);

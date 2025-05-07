@@ -32,15 +32,22 @@ public class JwtService {
         }
     }
 
+    public String extractStringClaim(String token, String claimName) {
+        try {
+            JWTClaimsSet claims = extractAllClaims(token);
+            return claims.getStringClaim(claimName);
+        } catch (Exception e) {
+            throw new RuntimeException("❌ Error al extraer claim '" + claimName + "': " + e.getMessage(), e);
+        }
+    }
+
     public JWTClaimsSet extractAllClaims(String token) throws Exception {
         SignedJWT signedJWT = SignedJWT.parse(token);
 
-        // Check if cached keys are valid
         if (System.currentTimeMillis() - lastFetchedTime > CACHE_EXPIRATION_TIME || cachedPublicKeys == null) {
             fetchAndCachePublicKeys();
         }
 
-        // Get the public key corresponding to the JWT's "kid"
         String kid = signedJWT.getHeader().getKeyID();
         JWK jwk = cachedPublicKeys.getKeyByKeyId(kid);
         if (jwk == null)
@@ -49,19 +56,16 @@ public class JwtService {
         RSAPublicKey publicKey = jwk.toRSAKey().toRSAPublicKey();
         JWSVerifier verifier = new RSASSAVerifier(publicKey);
 
-        // Validate the signature of the JWT
         if (!signedJWT.verify(verifier)) {
             throw new SecurityException("❌ Firma JWT inválida");
         }
 
         JWTClaimsSet claims = signedJWT.getJWTClaimsSet();
 
-        // Validate issuer
         if (!ISSUER.equals(claims.getIssuer())) {
             throw new SecurityException("❌ Issuer inválido: " + claims.getIssuer());
         }
 
-        // Validate expiration
         if (claims.getExpirationTime() == null || claims.getExpirationTime().before(new Date())) {
             throw new SecurityException("❌ Token expirado");
         }
@@ -69,7 +73,6 @@ public class JwtService {
         return claims;
     }
 
-    // Fetch the public keys from Firebase and cache them
     private void fetchAndCachePublicKeys() throws Exception {
         URL url = new URL(JWK_URL);
         cachedPublicKeys = JWKSet.load(url);

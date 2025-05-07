@@ -14,17 +14,17 @@ public class Vinculacion {
 
     @Id
     @ManyToOne
-    @JoinColumn(name = "PK_FK_IDPaciente")
+    @JoinColumn(name = "fk_id_paciente")
     private Paciente paciente;
 
     @Id
     @ManyToOne
-    @JoinColumn(name = "PK_FK_IDMedico")
+    @JoinColumn(name = "fk_id_medico")
     private Medico medico;
 
     private Timestamp fechaVinculado;
 
     @ManyToOne
-    @JoinColumn(name = "FK_TipoVinculacion")
+    @JoinColumn(name = "fk_id_tipo_vinculacion")
     private TipoVinculacion tipoVinculacion;
 }

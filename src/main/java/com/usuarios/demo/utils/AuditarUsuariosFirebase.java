@@ -19,13 +19,13 @@ public class AuditarUsuariosFirebase {
 
             for (ExportedUserRecord user : page.iterateAll()) {
                 Map<String, Object> claims = user.getCustomClaims();
-                String role = "sin role";
+                String rol = "sin rol";
 
-                if (claims != null && claims.containsKey("role")) {
-                    role = claims.get("role").toString();
+                if (claims != null && claims.containsKey("rol")) {
+                    rol = claims.get("rol").toString();
                 }
 
-                System.out.println("📋 Usuario: " + user.getEmail() + " | Role: " + role);
+                System.out.println("📋 Usuario: " + user.getEmail() + " | Rol: " + rol);
             }
 
             System.out.println("✅ Auditoría finalizada.");

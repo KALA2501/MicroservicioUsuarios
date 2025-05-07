@@ -1,19 +1,20 @@
 package com.usuarios.demo.entities;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.*;
 
 @Entity
+@Table(name = "admin")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class Admin {
+
     @Id
+    @Column(name = "pk_id", length = 255)
     private String pkId;
+
+    @Column(name = "nombre_completo", length = 255)
     private String nombreCompleto;
 }

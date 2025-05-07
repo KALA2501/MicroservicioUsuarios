@@ -3,17 +3,27 @@ spring:
     name: usuarios-service
 
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    url: jdbc:mysql://localhost:3306/kala
+    username: root
+    password: admin
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+      dialect: org.hibernate.dialect.MySQL8Dialect
+    show-sql: true
+    open-in-view: false
+
+server:
+  port: 9091
 
 eureka:
   client:
     register-with-eureka: true
     fetch-registry: true
     service-url:
-      defaultZone: http://discovery-service:8761/eureka
+      defaultZone: http://localhost:8761/eureka
 
   instance:
-    prefer-ip-address: true
-    instance-id: ${spring.application.name}:${random.uuid}
+    hostname: host.docker.internal
+    instance-id: usuarios-service:${random.uuid}

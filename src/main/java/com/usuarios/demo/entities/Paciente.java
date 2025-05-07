@@ -3,9 +3,9 @@ package com.usuarios.demo.entities;
 import jakarta.persistence.*;
 import lombok.*;
 import java.sql.Timestamp;
-import java.util.List;
 
 @Entity
+@Table(name = "paciente")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -17,40 +17,44 @@ public class Paciente {
     private String pkId;
 
     @ManyToOne
-    @JoinColumn(name = "FK_ID_CentroMedico")
+    @JoinColumn(name = "fk_id_centro_medico")
     private CentroMedico centroMedico;
+
+    @ManyToOne
+    @JoinColumn(name = "fk_id_tipo_documento")
+    private TipoDocumento tipoDocumento;
+
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "fk_contacto_emergencia", unique = true, nullable = false)
+    private ContactoEmergencia contactoEmergencia;
 
     private String nombre;
     private String apellido;
 
-    @ManyToOne
-    @JoinColumn(name = "FK_ID_TipoDocumento")
-    private TipoDocumento tipoDocumento;
-
-    @Column(name = "id_documento", unique = true, nullable = false)
+    @Column(name = "id_documento", length = 100, nullable = false, unique = true)
     private String idDocumento;
 
     @Column(name = "fecha_nacimiento")
     private Timestamp fechaNacimiento;
 
-    @Column(name = "codigoCIE")
+    @Column(name = "codigo_cie", length = 100)
     private String codigoCIE;
 
-    @Column(unique = true, nullable = false)
+    @Column(length = 100, nullable = false, unique = true)
     private String telefono;
 
-    @Column(name = "email")
     private String email;
-
     private String direccion;
+
+    @Column(name = "etapa")
     private int etapa;
+
     private String zona;
     private String distrito;
+
+    @Column(length = 50)
     private String genero;
 
     @Column(name = "url_imagen")
     private String urlImagen;
-
-    @OneToMany(mappedBy = "paciente", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ContactoEmergencia> contactosEmergencia;
 }

@@ -79,14 +79,15 @@ public class PacienteController {
             Paciente paciente = new Paciente();
             paciente.setPkId(UUID.randomUUID().toString());
 
-            // Campos obligatorios
+            // Ajustar el mapeo de datos para reflejar los cambios en la entidad Paciente
+            paciente.setContactoEmergencia(null); // Asignar un valor predeterminado o ajustar según los datos disponibles
+
+            // Otros campos permanecen igual
             paciente.setNombre(data.get("nombre").toString());
+            paciente.setApellido(data.getOrDefault("apellido", "").toString());
             paciente.setIdDocumento(data.get("idDocumento").toString());
             paciente.setTelefono(data.get("telefono").toString());
             paciente.setEmail(data.get("email").toString());
-
-            // Campos opcionales
-            paciente.setApellido(data.getOrDefault("apellido", "").toString());
             paciente.setDireccion(data.getOrDefault("direccion", "").toString());
             paciente.setCodigoCIE(data.getOrDefault("codigoCIE", "").toString());
             paciente.setZona(data.getOrDefault("zona", "").toString());
@@ -126,7 +127,7 @@ public class PacienteController {
 
             // Asignar custom claim (rol: paciente)
             Map<String, Object> claims = new HashMap<>();
-            claims.put("role", "paciente");
+            claims.put("rol", "paciente");
             FirebaseAuth.getInstance().setCustomUserClaims(userRecord.getUid(), claims);
 
             // VALIDACIÓN DE DUPLICADOS + GUARDADO
@@ -248,12 +249,13 @@ public class PacienteController {
 
             // Asignar rol personalizado
             Map<String, Object> claims = new HashMap<>();
-            claims.put("role", "paciente");
+            claims.put("rol", "paciente");
             FirebaseAuth.getInstance().setCustomUserClaims(userRecord.getUid(), claims);
 
             // Guardar paciente en base de datos
             Paciente paciente = new Paciente();
             paciente.setPkId(UUID.randomUUID().toString());
+            paciente.setContactoEmergencia(null); // Asignar un valor predeterminado o ajustar según los datos disponibles
             paciente.setNombre(data.get("nombre").toString());
             paciente.setApellido(data.get("apellido").toString());
             paciente.setIdDocumento(data.get("idDocumento").toString());

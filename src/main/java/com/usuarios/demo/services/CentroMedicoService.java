@@ -75,9 +75,9 @@ public class CentroMedicoService {
 
             UserRecord userRecord = FirebaseAuth.getInstance().createUser(request);
 
-            // Asignar custom claim correctamente ("role")
+            // Asignar custom claim correctamente ("rol")
             Map<String, Object> claims = new HashMap<>();
-            claims.put("role", "centro_medico");
+            claims.put("rol", "centro_medico");
 
             FirebaseAuth.getInstance().setCustomUserClaims(userRecord.getUid(), claims);
 
