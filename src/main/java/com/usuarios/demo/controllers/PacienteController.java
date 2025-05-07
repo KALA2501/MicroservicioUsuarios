@@ -50,6 +50,9 @@ public class PacienteController {
     @Autowired
     private JwtService jwtService;
 
+    @Autowired
+    private ContactoEmergenciaRepository contactoEmergenciaRepository;
+
     @Operation(summary = "Obtener todos los pacientes", description = "Retorna una lista de todos los pacientes registrados en el sistema")
     @ApiResponse(responseCode = "200", description = "Lista de pacientes obtenida exitosamente")
     @GetMapping
@@ -76,11 +79,28 @@ public class PacienteController {
     @PostMapping
     public ResponseEntity<?> guardar(@RequestBody Map<String, Object> data) {
         try {
+            // Validar si ya existe un paciente con el mismo correo
+            Optional<Paciente> pacienteExistente = service.buscarPorCorreo(data.get("email").toString());
+            if (pacienteExistente.isPresent()) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body("Ya existe un paciente registrado con este correo electrónico.");
+            }
+
+            // Validar si ya existe un contacto de emergencia con el mismo teléfono
+            Map<String, Object> contactoMap = (Map<String, Object>) data.get("contactoEmergencia");
+            String telefonoContacto = contactoMap.get("telefono").toString();
+            Optional<ContactoEmergencia> contactoExistente = contactoEmergenciaRepository.findByTelefono(telefonoContacto);
+            if (contactoExistente.isPresent()) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body("Ya existe un contacto de emergencia registrado con este teléfono.");
+            }
+
             Paciente paciente = new Paciente();
             paciente.setPkId(UUID.randomUUID().toString());
 
-            // Ajustar el mapeo de datos para reflejar los cambios en la entidad Paciente
-            paciente.setContactoEmergencia(null); // Asignar un valor predeterminado o ajustar según los datos disponibles
+            // Recuperar contactoEmergencia por ID del JSON
+            Long contactoId = Long.valueOf(contactoMap.get("pkId").toString());
+            ContactoEmergencia contacto = contactoEmergenciaRepository.findById(contactoId)
+                .orElseThrow(() -> new RuntimeException("Contacto de emergencia no encontrado"));
+            paciente.setContactoEmergencia(contacto);
 
             // Otros campos permanecen igual
             paciente.setNombre(data.get("nombre").toString());
@@ -256,7 +276,11 @@ public class PacienteController {
             // Guardar paciente en base de datos
             Paciente paciente = new Paciente();
             paciente.setPkId(UUID.randomUUID().toString());
-            paciente.setContactoEmergencia(null); // Asignar un valor predeterminado o ajustar según los datos disponibles
+            Map<String, Object> contactoMap = (Map<String, Object>) data.get("contactoEmergencia");
+            Long contactoId = Long.valueOf(contactoMap.get("pkId").toString());
+            ContactoEmergencia contacto = contactoEmergenciaRepository.findById(contactoId)
+                .orElseThrow(() -> new RuntimeException("Contacto de emergencia no encontrado"));
+            paciente.setContactoEmergencia(contacto);
             paciente.setNombre(data.get("nombre").toString());
             paciente.setApellido(data.get("apellido").toString());
             paciente.setIdDocumento(data.get("idDocumento").toString());
@@ -298,7 +322,7 @@ public class PacienteController {
             Medico medico = medicoRepository.findByCorreo(correoMedico)
                     .orElseThrow(() -> new RuntimeException("Médico no encontrado"));
 
-            Long tipoVinculacionId = Long.parseLong(data.get("tipoVinculacionId").toString());
+            String tipoVinculacionId = data.get("tipoVinculacionId").toString();
 
             TipoVinculacion tipo = tipoVinculacionRepository.findById(tipoVinculacionId)
                     .orElseThrow(() -> new RuntimeException("Tipo de vinculación no encontrado"));

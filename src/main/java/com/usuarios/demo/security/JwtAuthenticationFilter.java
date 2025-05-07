@@ -47,6 +47,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 rol = jwtService.extractFirstAvailableClaim(jwt, "role", "rol"); // Extraer rol del token para otros usuarios
             }
 
+            rol = rol.toLowerCase(); // Convertir el rol a minúsculas para cumplir con la preferencia del usuario
+
             if (email != null && rol != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + rol.toUpperCase()));
 

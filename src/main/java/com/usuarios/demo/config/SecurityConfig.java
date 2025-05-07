@@ -45,8 +45,11 @@ public class SecurityConfig {
                                 "/swagger-ui/**", // Swagger UI
                                 "/v3/api-docs/**", // OpenAPI docs
                                 "/actuator/**", // Monitoring endpoints
-                                "/api/solicitudes-centro-medico/**" // Permitir acceso público
+                                "/api/solicitudes-centro-medico/**", // Permitir acceso público
+                                "/api/contacto-emergencia/buscar-por-telefono" // 👈 permitir explícitamente esta
                         ).permitAll()
+                        .requestMatchers("/api/contacto-emergencia/**").hasRole("MEDICO")
+                        .requestMatchers("/api/pacientes/**").hasRole("MEDICO") // Permitir acceso a médicos
                         .anyRequest().authenticated() // Todo lo demás requiere token
                 )
                 .authenticationProvider(authenticationProvider)

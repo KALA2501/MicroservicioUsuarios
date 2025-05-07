@@ -16,7 +16,7 @@ public class TipoVinculacionService {
         return repository.findAll();
     }
 
-    public Optional<TipoVinculacion> obtenerPorId(Long id) {
+    public Optional<TipoVinculacion> obtenerPorId(String id) {
         return repository.findById(id);
     }
 
@@ -24,7 +24,7 @@ public class TipoVinculacionService {
         return repository.save(tipoVinculacion);
     }
 
-    public void eliminar(Long id) {
+    public void eliminar(String id) {
         repository.deleteById(id);
     }
 }

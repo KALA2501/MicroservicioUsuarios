@@ -5,5 +5,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface TipoVinculacionRepository extends JpaRepository<TipoVinculacion, Long> {
+public interface TipoVinculacionRepository extends JpaRepository<TipoVinculacion, String> {
 }

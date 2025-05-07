@@ -27,4 +27,8 @@ public class ContactoEmergenciaService {
     public void eliminar(Long id) {
         repository.deleteById(id);
     }
+
+    public Optional<ContactoEmergencia> buscarPorTelefono(String telefono) {
+        return repository.findByTelefono(telefono);
+    }
 }

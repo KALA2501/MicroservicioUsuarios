@@ -43,10 +43,9 @@ public class VinculacionService {
         Medico medico = medicoRepository.findById(medicoId)
                 .orElseThrow(() -> new RuntimeException("Médico no encontrado"));
 
-        TipoVinculacion tipo = tipoVinculacionRepository.findById(Long.valueOf(tipoVinculacionId))
+        TipoVinculacion tipo = tipoVinculacionRepository.findById(tipoVinculacionId)
                 .orElseThrow(() -> new RuntimeException("Tipo de vinculación no encontrado"));
 
-        // Verificar duplicado (sin usar getPkId)
         Optional<Vinculacion> existente = vinculacionRepository
                 .findByPacienteAndMedicoAndTipoVinculacion(paciente, medico, tipo);
 
@@ -82,12 +81,11 @@ public class VinculacionService {
         Vinculacion vinculacion = vinculacionRepository.findById(vinculacionId)
                 .orElseThrow(() -> new RuntimeException("Vinculación no encontrada"));
 
-        TipoVinculacion nuevoTipo = tipoVinculacionRepository.findById(Long.valueOf(nuevoTipoVinculacionId))
+        TipoVinculacion nuevoTipo = tipoVinculacionRepository.findById(nuevoTipoVinculacionId)
                 .orElseThrow(() -> new RuntimeException("Tipo de vinculación no encontrado"));
 
         vinculacion.setTipoVinculacion(nuevoTipo);
 
-        // Simulación de notificación
         System.out.println("🔔 Notificación enviada al médico: " + vinculacion.getMedico().getNombre());
         System.out.println("🔔 Notificación enviada al paciente: " + vinculacion.getPaciente().getNombre());
 
