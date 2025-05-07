@@ -106,8 +106,6 @@ public class PacienteService {
         existente.setEmail(nuevosDatos.getEmail());
         existente.setDireccion(nuevosDatos.getDireccion());
         existente.setEtapa(nuevosDatos.getEtapa());
-        existente.setZona(nuevosDatos.getZona());
-        existente.setDistrito(nuevosDatos.getDistrito());
         existente.setGenero(nuevosDatos.getGenero());
         existente.setUrlImagen(nuevosDatos.getUrlImagen());
 

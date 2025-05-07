@@ -89,15 +89,16 @@ public class PacienteController {
             paciente.setTelefono(data.get("telefono").toString());
             paciente.setEmail(data.get("email").toString());
             paciente.setDireccion(data.getOrDefault("direccion", "").toString());
-            paciente.setCodigoCIE(data.getOrDefault("codigoCIE", "").toString());
-            paciente.setZona(data.getOrDefault("zona", "").toString());
-            paciente.setDistrito(data.getOrDefault("distrito", "").toString());
             paciente.setGenero(data.getOrDefault("genero", "").toString());
             paciente.setUrlImagen(data.getOrDefault("urlImagen", "").toString());
 
             Object etapaRaw = data.get("etapa");
             int etapa = (etapaRaw instanceof Integer) ? (Integer) etapaRaw : Integer.parseInt(etapaRaw.toString());
             paciente.setEtapa(etapa);
+
+            Object codigoCieRaw = data.get("codigoCIE");
+            int codigo_cie = (etapaRaw instanceof Integer) ? (Integer) etapaRaw : Integer.parseInt(etapaRaw.toString());
+            paciente.setCodigoCIE(codigo_cie);
 
             String fechaNacStr = data.get("fechaNacimiento").toString();
             paciente.setFechaNacimiento(Timestamp.valueOf(fechaNacStr + " 00:00:00"));
@@ -262,15 +263,18 @@ public class PacienteController {
             paciente.setTelefono(data.get("telefono").toString());
             paciente.setEmail(data.get("email").toString());
             paciente.setDireccion(data.getOrDefault("direccion", "").toString());
-            paciente.setCodigoCIE(data.getOrDefault("codigoCIE", "").toString());
-            paciente.setZona(data.getOrDefault("zona", "").toString());
-            paciente.setDistrito(data.getOrDefault("distrito", "").toString());
             paciente.setGenero(data.getOrDefault("genero", "").toString());
             paciente.setUrlImagen(data.getOrDefault("urlImagen", "").toString());
 
             Object etapaRaw = data.get("etapa");
             int etapa = (etapaRaw instanceof Integer) ? (Integer) etapaRaw : Integer.parseInt(etapaRaw.toString());
             paciente.setEtapa(etapa);
+
+            
+            Object codigoCieRaw = data.get("codigoCIE");
+            int codigo_cie = (etapaRaw instanceof Integer) ? (Integer) etapaRaw : Integer.parseInt(etapaRaw.toString());
+            paciente.setCodigoCIE(codigo_cie);
+
 
             String fechaNacStr = data.get("fechaNacimiento").toString();
             paciente.setFechaNacimiento(Timestamp.valueOf(fechaNacStr + " 00:00:00"));

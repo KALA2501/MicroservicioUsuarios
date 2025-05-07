@@ -41,6 +41,19 @@ public class JwtService {
         }
     }
 
+    public String extractFirstAvailableClaim(String token, String... claimNames) {
+        try {
+            JWTClaimsSet claims = extractAllClaims(token);
+            for (String name : claimNames) {
+                String value = claims.getStringClaim(name);
+                if (value != null) return value;
+            }
+            return null;
+        } catch (Exception e) {
+            throw new RuntimeException("❌ Error al extraer claims: " + e.getMessage(), e);
+        }
+    }
+
     public JWTClaimsSet extractAllClaims(String token) throws Exception {
         SignedJWT signedJWT = SignedJWT.parse(token);
 

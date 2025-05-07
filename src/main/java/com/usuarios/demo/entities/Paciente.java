@@ -37,8 +37,8 @@ public class Paciente {
     @Column(name = "fecha_nacimiento")
     private Timestamp fechaNacimiento;
 
-    @Column(name = "codigo_cie", length = 100)
-    private String codigoCIE;
+    @Column(name = "codigo_cie")
+    private int codigoCIE;
 
     @Column(length = 100, nullable = false, unique = true)
     private String telefono;
@@ -48,9 +48,6 @@ public class Paciente {
 
     @Column(name = "etapa")
     private int etapa;
-
-    private String zona;
-    private String distrito;
 
     @Column(length = 50)
     private String genero;

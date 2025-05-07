@@ -44,7 +44,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if ("admin@kala.com".equals(email)) { // Usuario quemado
                 rol = "ADMIN"; // Asignar rol ADMIN al administrador quemado
             } else {
-                rol = jwtService.extractStringClaim(jwt, "rol"); // Extraer rol del token para otros usuarios
+                rol = jwtService.extractFirstAvailableClaim(jwt, "role", "rol"); // Extraer rol del token para otros usuarios
             }
 
             if (email != null && rol != null && SecurityContextHolder.getContext().getAuthentication() == null) {
