@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.Optional;
+import java.util.List;
 
 @Repository
 public interface CentroMedicoRepository extends JpaRepository<CentroMedico, Long> {
@@ -18,4 +19,6 @@ public interface CentroMedicoRepository extends JpaRepository<CentroMedico, Long
     @Transactional
     @Query(value = "DELETE FROM centro_medico WHERE correo = ?1", nativeQuery = true)
     void deleteByCorreo(String correo);
+
+
 }

@@ -72,10 +72,6 @@ public class PacienteService {
         System.out.println("Paciente y sus vinculaciones eliminados con éxito.");
     }
 
-    public List<Paciente> obtenerPorCentroMedico(Long idCentro) {
-        return repository.findByCentroMedicoPkId(idCentro);
-    }
-
     public Paciente actualizar(String id, Paciente nuevosDatos) {
         Paciente existente = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Paciente no encontrado"));
@@ -165,4 +161,7 @@ public class PacienteService {
         return paciente.orElseThrow(() -> new RuntimeException("Paciente no encontrado"));
     }
 
+    public List<Paciente> obtenerPorCentroMedico(Long idCentro) {
+    return repository.findByCentroMedico_PkId(idCentro);
+    }
 }

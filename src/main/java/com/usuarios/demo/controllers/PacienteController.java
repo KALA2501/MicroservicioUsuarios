@@ -80,9 +80,11 @@ public class PacienteController {
     public ResponseEntity<?> guardar(@RequestBody Map<String, Object> data) {
         try {
             // Validar si ya existe un paciente con el mismo correo
-            Optional<Paciente> pacienteExistente = service.buscarPorCorreo(data.get("email").toString());
-            if (pacienteExistente.isPresent()) {
+            try {
+                service.buscarPorCorreo(data.get("email").toString());
                 return ResponseEntity.status(HttpStatus.CONFLICT).body("Ya existe un paciente registrado con este correo electrónico.");
+            } catch (RuntimeException e) {
+                // Si lanza excepción, significa que NO existe y se puede continuar
             }
 
             // Validar si ya existe un contacto de emergencia con el mismo teléfono
@@ -117,7 +119,7 @@ public class PacienteController {
             paciente.setEtapa(etapa);
 
             Object codigoCieRaw = data.get("codigoCIE");
-            int codigo_cie = (etapaRaw instanceof Integer) ? (Integer) etapaRaw : Integer.parseInt(etapaRaw.toString());
+            int codigo_cie = (codigoCieRaw instanceof Integer) ? (Integer) codigoCieRaw : Integer.parseInt(codigoCieRaw.toString());
             paciente.setCodigoCIE(codigo_cie);
 
             String fechaNacStr = data.get("fechaNacimiento").toString();
@@ -161,251 +163,16 @@ public class PacienteController {
         }
     }
 
-    @Operation(summary = "Actualizar paciente", description = "Actualiza los datos de un paciente existente por ID")
-    @ApiResponse(responseCode = "200", description = "Paciente actualizado correctamente")
-    @ApiResponse(responseCode = "404", description = "Paciente no encontrado")
-    @PutMapping("/{id}")
-    public ResponseEntity<?> actualizar(@PathVariable String id, @RequestBody Paciente paciente) {
+    @GetMapping("/centro-medico/{id}")
+    @Operation(summary = "Obtener pacientes por centro médico", description = "Retorna los pacientes asociados a un centro médico")
+    public ResponseEntity<?> obtenerPacientesPorCentro(@PathVariable Long id) {
         try {
-            Paciente actualizado = service.actualizar(id, paciente);
-            return ResponseEntity.ok(actualizado);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Error: " + e.getMessage());
-        }
-    }
-
-    @Operation(summary = "Eliminar paciente y su vinculación", description = "Elimina el paciente identificado por el ID proporcionado y su vinculación con el médico")
-    @ApiResponse(responseCode = "200", description = "Paciente eliminado correctamente")
-    @ApiResponse(responseCode = "404", description = "Paciente no encontrado")
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> eliminar(@PathVariable String id) {
-        try {
-            if (vinculacionRepository.findByPaciente_PkId(id).isEmpty()) {
-                System.out.println("🟡 No hay vinculaciones, se procede a eliminar paciente directo.");
-            } else {
-                System.out.println("🔗 Hay vinculaciones, eliminándolas...");
-                vinculacionRepository.deleteAllByPaciente_PkId(id);
-            }
-            service.eliminar(id);
-            return ResponseEntity.ok("Paciente eliminado exitosamente");
-        } catch (RuntimeException e) {
-            // Solo si explícitamente el paciente no existe
-            if (e.getMessage().contains("Paciente no encontrado")) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-            }
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error interno al eliminar paciente: " + e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error al eliminar paciente: " + e.getMessage());
-        }
-    }
-
-    @Operation(summary = "Listar pacientes por centro médico", description = "Devuelve todos los pacientes asociados al centro médico dado")
-    @ApiResponse(responseCode = "200", description = "Lista obtenida exitosamente")
-    @GetMapping("/centro-medico/{idCentro}")
-    public List<Paciente> obtenerPorCentroMedico(@PathVariable Long idCentro) {
-        return service.obtenerPorCentroMedico(idCentro);
-    }
-
-    @Operation(summary = "Listar pacientes por médico", description = "Devuelve todos los pacientes asociados a un médico según su tarjeta profesional")
-    @ApiResponse(responseCode = "200", description = "Pacientes encontrados")
-    @GetMapping("/medico")
-    public ResponseEntity<?> obtenerPacientesPorMedico(@RequestParam String tarjetaProfesional) {
-        try {
-            List<Vinculacion> vinculaciones = service.obtenerPacientesPorTarjetaProfesional(tarjetaProfesional);
-            return ResponseEntity.ok(vinculaciones);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error al buscar pacientes: " + e.getMessage());
-        }
-    }
-
-    @Operation(summary = "Buscar pacientes por nombre", description = "Devuelve pacientes cuyos nombres coincidan parcialmente con el valor ingresado")
-    @GetMapping("/buscar/nombre")
-    public List<Paciente> buscarPorNombre(@RequestParam String nombre) {
-        return service.buscarPorNombre(nombre);
-    }
-
-    @Operation(summary = "Buscar paciente por tipo y número de identificación", description = "Devuelve un paciente que coincida exactamente con el tipo y número de identificación")
-    @ApiResponse(responseCode = "200", description = "Paciente encontrado")
-    @ApiResponse(responseCode = "404", description = "Paciente no encontrado")
-    @GetMapping("/buscar/documento")
-    public ResponseEntity<?> buscarPorTipoYNumero(@RequestParam String tipo, @RequestParam String numero) {
-        Optional<Paciente> paciente = service.buscarPorTipoYNumero(tipo, numero);
-
-        if (paciente.isPresent()) {
-            return ResponseEntity.ok(paciente.get());
-        } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Paciente no encontrado");
-        }
-    }
-
-    @PostMapping("/registrar-completo")
-    @Operation(summary = "Registro completo de paciente", description = "Registra un paciente en Firebase y MySQL, y lo vincula con el médico")
-    public ResponseEntity<?> registrarPacienteCompleto(@RequestBody Map<String, Object> data,
-            HttpServletRequest request) {
-        try {
-            // Crear usuario en Firebase Authentication
-            String correoPaciente = data.get("email").toString();
-            String password = data.get("password").toString();
-
-            UserRecord.CreateRequest createRequest = new UserRecord.CreateRequest()
-                    .setEmail(correoPaciente)
-                    .setPassword(password)
-                    .setEmailVerified(false)
-                    .setDisabled(false);
-
-            // Verificar si el correo ya existe en Firebase
-            try {
-                FirebaseAuth.getInstance().getUserByEmail(correoPaciente);
-                return ResponseEntity.status(HttpStatus.CONFLICT).body("El correo ya está registrado");
-            } catch (FirebaseAuthException e) {
-                if (!e.getAuthErrorCode().name().equals("USER_NOT_FOUND")) {
-                    throw e; // Si el error no es USER_NOT_FOUND, relanzar la excepción
-                }
-            }
-
-            UserRecord userRecord = FirebaseAuth.getInstance().createUser(createRequest);
-
-            // Asignar rol personalizado
-            Map<String, Object> claims = new HashMap<>();
-            claims.put("rol", "paciente");
-            FirebaseAuth.getInstance().setCustomUserClaims(userRecord.getUid(), claims);
-
-            // Guardar paciente en base de datos
-            Paciente paciente = new Paciente();
-            paciente.setPkId(UUID.randomUUID().toString());
-            Map<String, Object> contactoMap = (Map<String, Object>) data.get("contactoEmergencia");
-            Long contactoId = Long.valueOf(contactoMap.get("pkId").toString());
-            ContactoEmergencia contacto = contactoEmergenciaRepository.findById(contactoId)
-                .orElseThrow(() -> new RuntimeException("Contacto de emergencia no encontrado"));
-            paciente.setContactoEmergencia(contacto);
-            paciente.setNombre(data.get("nombre").toString());
-            paciente.setApellido(data.get("apellido").toString());
-            paciente.setIdDocumento(data.get("idDocumento").toString());
-            paciente.setTelefono(data.get("telefono").toString());
-            paciente.setEmail(data.get("email").toString());
-            paciente.setDireccion(data.getOrDefault("direccion", "").toString());
-            paciente.setGenero(data.getOrDefault("genero", "").toString());
-            paciente.setUrlImagen(data.getOrDefault("urlImagen", "").toString());
-
-            Object etapaRaw = data.get("etapa");
-            int etapa = (etapaRaw instanceof Integer) ? (Integer) etapaRaw : Integer.parseInt(etapaRaw.toString());
-            paciente.setEtapa(etapa);
-
-            
-            Object codigoCieRaw = data.get("codigoCIE");
-            int codigo_cie = (etapaRaw instanceof Integer) ? (Integer) etapaRaw : Integer.parseInt(etapaRaw.toString());
-            paciente.setCodigoCIE(codigo_cie);
-
-
-            String fechaNacStr = data.get("fechaNacimiento").toString();
-            paciente.setFechaNacimiento(Timestamp.valueOf(fechaNacStr + " 00:00:00"));
-
-            Long idCentro = Long.parseLong(data.get("centroMedico").toString());
-            CentroMedico centro = centroMedicoRepository.findById(idCentro)
-                    .orElseThrow(() -> new RuntimeException("Centro médico no encontrado"));
-            paciente.setCentroMedico(centro);
-
-            String idTipoDoc = data.get("tipoDocumento").toString();
-            TipoDocumento tipoDoc = tipoDocumentoRepository.findById(idTipoDoc)
-                    .orElseThrow(() -> new RuntimeException("Tipo de documento no encontrado"));
-            paciente.setTipoDocumento(tipoDoc);
-
-            Paciente guardado = service.guardarConValidacion(paciente);
-
-            // 🔐 Vincular al médico autenticado
-            String token = request.getHeader("Authorization").replace("Bearer ", "");
-            String correoMedico = jwtService.extractUsername(token);
-
-            Medico medico = medicoRepository.findByCorreo(correoMedico)
-                    .orElseThrow(() -> new RuntimeException("Médico no encontrado"));
-
-            String tipoVinculacionId = data.get("tipoVinculacionId").toString();
-
-            TipoVinculacion tipo = tipoVinculacionRepository.findById(tipoVinculacionId)
-                    .orElseThrow(() -> new RuntimeException("Tipo de vinculación no encontrado"));
-
-            Vinculacion vinculacion = new Vinculacion();
-            vinculacion.setPaciente(guardado);
-            vinculacion.setMedico(medico);
-            vinculacion.setTipoVinculacion(tipo);
-            vinculacion.setFechaVinculado(new Timestamp(System.currentTimeMillis()));
-
-            vinculacionRepository.save(vinculacion);
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(guardado);
-
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error al registrar paciente: " + e.getMessage());
-        }
-    }
-
-    @Operation(summary = "Listar pacientes del médico autenticado", description = "Devuelve todos los pacientes asociados al médico autenticado usando el token JWT")
-    @ApiResponse(responseCode = "200", description = "Lista de pacientes obtenida exitosamente")
-    @ApiResponse(responseCode = "401", description = "No autorizado")
-    @ApiResponse(responseCode = "500", description = "Error interno del servidor")
-    @GetMapping("/del-medico")
-    public ResponseEntity<List<Paciente>> listarPacientesDelMedico(@RequestHeader("Authorization") String token) {
-        try {
-            // Eliminar el prefijo "Bearer " del token
-            String jwt = token.replace("Bearer ", "");
-
-            // Obtener la lista de pacientes usando el servicio
-            List<Paciente> pacientes = service.obtenerPacientesDelMedico(jwt);
-
+            List<Paciente> pacientes = service.obtenerPorCentroMedico(id);
             return ResponseEntity.ok(pacientes);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
-        }
-    }
-
-    @CrossOrigin(origins = "http://localhost:3000")
-    @GetMapping("/buscar-por-correo")
-    public ResponseEntity<?> buscarPorCorreo(@RequestParam String email) {
-        try {
-            // Buscar el paciente por correo
-            Paciente paciente = service.buscarPorCorreo(email);
-            if (paciente != null) {
-                return ResponseEntity.ok(paciente);
-            } else {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body("Paciente con el correo " + email + " no encontrado.");
-            }
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error al buscar el paciente: " + e.getMessage());
+                    .body("Error al obtener pacientes: " + e.getMessage());
         }
     }
 
-    @Operation(summary = "Obtener médicos vinculados a un paciente", description = "Devuelve la lista de médicos asociados a un paciente dado su ID")
-    @ApiResponse(responseCode = "200", description = "Lista de médicos obtenida exitosamente")
-    @ApiResponse(responseCode = "404", description = "Paciente no encontrado")
-    @GetMapping("/{id}/medicos")
-    public ResponseEntity<?> obtenerMedicosPorPaciente(@PathVariable String id) {
-        try {
-            // Buscar las vinculaciones del paciente
-            List<Vinculacion> vinculaciones = vinculacionRepository.findByPaciente_PkId(id);
-
-            if (vinculaciones.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("El paciente no tiene médicos vinculados.");
-            }
-
-            // Obtener los médicos de las vinculaciones
-            List<Medico> medicos = vinculaciones.stream()
-                    .map(Vinculacion::getMedico)
-                    .collect(Collectors.toList());
-
-            return ResponseEntity.ok(medicos);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error al obtener los médicos: " + e.getMessage());
-        }
-    }
 }

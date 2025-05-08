@@ -48,8 +48,10 @@ public class SecurityConfig {
                                 "/api/solicitudes-centro-medico/**", // Permitir acceso público
                                 "/api/contacto-emergencia/buscar-por-telefono" // 👈 permitir explícitamente esta
                         ).permitAll()
-                        .requestMatchers("/api/contacto-emergencia/**").hasRole("MEDICO")
-                        .requestMatchers("/api/pacientes/**").hasRole("MEDICO") // Permitir acceso a médicos
+                        .requestMatchers("/api/contacto-emergencia/**").hasAuthority("medico")
+                        .requestMatchers("/api/pacientes/centro-medico/**").permitAll()
+                        .requestMatchers("/api/pacientes/**").hasAuthority("medico")
+
                         .anyRequest().authenticated() // Todo lo demás requiere token
                 )
                 .authenticationProvider(authenticationProvider)

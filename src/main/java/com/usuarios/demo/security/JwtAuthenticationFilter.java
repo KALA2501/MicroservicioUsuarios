@@ -40,6 +40,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             email = jwtService.extractUsername(jwt);
             String rol;
 
+            // Log the decoded JWT token for debugging purposes
+            System.out.println("🔍 Decoded JWT Token: " + jwtService.decodeToken(jwt));
+
             // Verificar si el usuario es el administrador quemado
             if ("admin@kala.com".equals(email)) { // Usuario quemado
                 rol = "ADMIN"; // Asignar rol ADMIN al administrador quemado
@@ -47,10 +50,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 rol = jwtService.extractFirstAvailableClaim(jwt, "role", "rol"); // Extraer rol del token para otros usuarios
             }
 
-            rol = rol.toLowerCase(); // Convertir el rol a minúsculas para cumplir con la preferencia del usuario
+            rol = rol.trim().toLowerCase(); 
 
             if (email != null && rol != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + rol.toUpperCase()));
+                var authorities = List.of(new SimpleGrantedAuthority(rol)); 
+                System.out.println("🎯 Authorities asignadas: " + authorities);
 
                 var authToken = new UsernamePasswordAuthenticationToken(email, null, authorities);
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
@@ -60,7 +64,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 System.out.println("🔑 Rol asignado: " + rol);
             }
         } catch (Exception e) {
-            System.out.println("❌ Error al procesar el token: " + e.getMessage());
+            System.err.println("❌ Error al procesar el token JWT: " + e.getMessage());
+            e.printStackTrace();
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token inválido o no verificable");
             return;
         }

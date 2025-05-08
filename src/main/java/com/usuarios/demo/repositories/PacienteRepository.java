@@ -30,4 +30,6 @@ public interface PacienteRepository extends JpaRepository<Paciente, String> {
     // Buscar pacientes directamente por su clave primaria (pkId)
     Optional<Paciente> findByPkId(String pkId);
 
+    List<Paciente> findByCentroMedico_PkId(Long idCentro);
+
 }

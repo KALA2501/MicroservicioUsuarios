@@ -6,9 +6,10 @@ import com.nimbusds.jose.crypto.RSASSAVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import com.nimbusds.jose.JWSVerifier;
+import com.usuarios.demo.exceptions.JwtServiceException;
 import org.springframework.stereotype.Service;
 
-import java.net.URL;
+import java.net.URI;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
@@ -28,7 +29,7 @@ public class JwtService {
         try {
             return extractAllClaims(token).getStringClaim("email");
         } catch (Exception e) {
-            throw new RuntimeException("❌ Token inválido o no verificable: " + e.getMessage(), e);
+            throw new JwtServiceException("❌ Token inválido o no verificable: " + e.getMessage(), e);
         }
     }
 
@@ -37,7 +38,7 @@ public class JwtService {
             JWTClaimsSet claims = extractAllClaims(token);
             return claims.getStringClaim(claimName);
         } catch (Exception e) {
-            throw new RuntimeException("❌ Error al extraer claim '" + claimName + "': " + e.getMessage(), e);
+            throw new JwtServiceException("❌ Error al extraer claim '" + claimName + "': " + e.getMessage(), e);
         }
     }
 
@@ -50,7 +51,7 @@ public class JwtService {
             }
             return null;
         } catch (Exception e) {
-            throw new RuntimeException("❌ Error al extraer claims: " + e.getMessage(), e);
+            throw new JwtServiceException("❌ Error al extraer claims: " + e.getMessage(), e);
         }
     }
 
@@ -86,9 +87,21 @@ public class JwtService {
         return claims;
     }
 
-    private void fetchAndCachePublicKeys() throws Exception {
-        URL url = new URL(JWK_URL);
-        cachedPublicKeys = JWKSet.load(url);
-        lastFetchedTime = System.currentTimeMillis();
+    public JWTClaimsSet decodeToken(String token) {
+        try {
+            return extractAllClaims(token);
+        } catch (Exception e) {
+            throw new JwtServiceException("❌ Error al decodificar el token: " + e.getMessage(), e);
+        }
+    }
+
+    private void fetchAndCachePublicKeys() throws JwtServiceException {
+        try {
+            URI uri = new URI(JWK_URL);
+            cachedPublicKeys = JWKSet.load(uri.toURL());
+            lastFetchedTime = System.currentTimeMillis();
+        } catch (Exception e) {
+            throw new JwtServiceException("❌ Error al obtener claves públicas: " + e.getMessage(), e);
+        }
     }
 }

@@ -47,8 +47,9 @@ public class CentroMedicoService {
         }
     }
 
-    @Autowired
-    private CentroMedicoRepository centroMedicoRepository;
+    public boolean existePorCorreo(String correo) {
+        return repository.existsByCorreo(correo);
+    }
 
     @Transactional
     public CentroMedico registrarCentroMedico(CentroMedico centro) {
@@ -58,12 +59,12 @@ public class CentroMedicoService {
         }
 
         // Verificar si el correo ya existe
-        if (centroMedicoRepository.existsByCorreo(centro.getCorreo())) {
+        if (repository.existsByCorreo(centro.getCorreo())) {
             throw new RuntimeException("Centro ya existe con ese correo");
         }
 
         // Guardar primero en la base de datos
-        CentroMedico guardado = centroMedicoRepository.save(centro);
+        CentroMedico guardado = repository.save(centro);
 
         try {
             // Crear usuario en Firebase
@@ -88,7 +89,7 @@ public class CentroMedicoService {
                     .println("❌ Error al crear usuario en Firebase. Revirtiendo centro médico en la base de datos...");
 
             // Rollback manual: eliminar el centro médico que guardamos si Firebase falla
-            centroMedicoRepository.deleteById(guardado.getPkId());
+            repository.deleteById(guardado.getPkId());
 
             throw new RuntimeException("Error al registrar centro médico: " + e.getMessage());
         }
@@ -99,12 +100,10 @@ public class CentroMedicoService {
     @Transactional
     public void eliminarPorCorreo(String correo) {
         try {
-            // Primero intentamos encontrar el centro médico
-            Optional<CentroMedico> centro = centroMedicoRepository.findByCorreo(correo);
-
+            // Buscar el centro médico por correo
+            Optional<CentroMedico> centro = repository.findByCorreo(correo);
             if (centro.isPresent()) {
-                // Si existe, lo eliminamos usando el método delete
-                centroMedicoRepository.delete(centro.get());
+                repository.delete(centro.get());
                 System.out.println("✅ Centro médico eliminado correctamente: " + correo);
             } else {
                 System.out.println("⚠️ No se encontró centro médico con el correo: " + correo);
@@ -115,8 +114,5 @@ public class CentroMedicoService {
             throw new RuntimeException("Error al eliminar centro médico con correo: " + correo, e);
         }
     }
-
-    public boolean existePorCorreo(String correo) {
-        return centroMedicoRepository.existsByCorreo(correo);
-    }
 }
+
