@@ -9,12 +9,14 @@ import com.usuarios.demo.repositories.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.*;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 
 import java.security.Principal;
 
@@ -44,50 +46,53 @@ public class MedicoController {
     }
 
     @Operation(summary = "Guardar un nuevo médico", description = "Recibe un objeto médico en el cuerpo de la solicitud y lo almacena en el sistema")
-    @ApiResponse(responseCode = "200", description = "Médico guardado correctamente")
-    @PostMapping
-    public ResponseEntity<?> guardar(@RequestBody Medico medico) {
-        try {
-            Optional<CentroMedico> centro = service.obtenerCentroPorId(medico.getCentroMedico().getPkId());
-            if (centro.isEmpty()) {
-                return ResponseEntity.badRequest().body("Centro médico no encontrado");
-            }
-
-            Optional<TipoDocumento> tipoDoc = service.obtenerTipoDocumentoPorId(medico.getTipoDocumento().getId());
-            if (tipoDoc.isEmpty()) {
-                return ResponseEntity.badRequest().body("Tipo de documento no encontrado");
-            }
-
-            if (medico.getCorreo() == null || medico.getCorreo().isBlank()) {
-                return ResponseEntity.badRequest().body("Correo del médico es obligatorio");
-            }
-
-            // Crear usuario en Firebase Authentication
-            UserRecord.CreateRequest request = new UserRecord.CreateRequest()
-                    .setEmail(medico.getCorreo())
-                    .setPassword("medico123") // contraseña temporal
-                    .setEmailVerified(false)
-                    .setDisabled(false);
-
-            UserRecord userRecord = FirebaseAuth.getInstance().createUser(request);
-
-            // Asignar custom claim (rol: medico)
-            Map<String, Object> claims = new HashMap<>();
-            claims.put("role", "medico");
-            FirebaseAuth.getInstance().setCustomUserClaims(userRecord.getUid(), claims);
-
-            // Guardar en base de datos
-            medico.setPkId(UUID.randomUUID().toString());
-            medico.setCentroMedico(centro.get());
-            medico.setTipoDocumento(tipoDoc.get());
-
-            Medico guardado = service.guardar(medico);
-            return ResponseEntity.ok(guardado);
-
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("Error al crear médico: " + e.getMessage());
+@ApiResponse(responseCode = "200", description = "Médico guardado correctamente")
+@PostMapping
+@PreAuthorize("hasAuthority('centro_medico')")
+public ResponseEntity<?> guardar(@RequestBody Medico medico) {
+    try {
+        Optional<CentroMedico> centro = service.obtenerCentroPorId(medico.getCentroMedico().getPkId());
+        if (centro.isEmpty()) {
+            return ResponseEntity.badRequest().body("Centro médico no encontrado");
         }
+
+        Optional<TipoDocumento> tipoDoc = service.obtenerTipoDocumentoPorId(medico.getTipoDocumento().getId());
+        if (tipoDoc.isEmpty()) {
+            return ResponseEntity.badRequest().body("Tipo de documento no encontrado");
+        }
+
+        if (medico.getCorreo() == null || medico.getCorreo().isBlank()) {
+            return ResponseEntity.badRequest().body("Correo del médico es obligatorio");
+        }
+
+        // Crear usuario en Firebase Authentication
+        UserRecord.CreateRequest request = new UserRecord.CreateRequest()
+                .setEmail(medico.getCorreo())
+                .setPassword("medico123") // contraseña temporal
+                .setEmailVerified(false)
+                .setDisabled(false);
+
+        UserRecord userRecord = FirebaseAuth.getInstance().createUser(request);
+
+        // ✅ Asignar custom claim correcto: "role"
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("role", "medico"); // Este sí lo detecta Spring Security
+
+        FirebaseAuth.getInstance().setCustomUserClaims(userRecord.getUid(), claims);
+
+        // Guardar en base de datos
+        medico.setPkId(UUID.randomUUID().toString());
+        medico.setCentroMedico(centro.get());
+        medico.setTipoDocumento(tipoDoc.get());
+
+        Medico guardado = service.guardar(medico);
+        return ResponseEntity.ok(guardado);
+
+    } catch (Exception e) {
+        return ResponseEntity.status(500).body("Error al crear médico: " + e.getMessage());
     }
+}
+
 
     @Operation(summary = "Eliminar un médico", description = "Elimina el médico identificado por el ID proporcionado")
     @ApiResponse(responseCode = "200", description = "Médico eliminado correctamente")

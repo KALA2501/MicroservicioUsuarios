@@ -74,94 +74,102 @@ public class PacienteController {
         }
     }
 
-    @Operation(summary = "Guardar un nuevo paciente", description = "Crea y almacena un nuevo paciente a partir de los datos proporcionados")
-    @ApiResponse(responseCode = "201", description = "Paciente guardado correctamente")
-    @PostMapping("/crear")
-    public ResponseEntity<?> guardar(@RequestBody Map<String, Object> data) {
+ @Operation(summary = "Guardar un nuevo paciente", description = "Crea y almacena un nuevo paciente a partir de los datos proporcionados")
+@ApiResponse(responseCode = "201", description = "Paciente guardado correctamente")
+@PostMapping("/crear")
+public ResponseEntity<?> guardar(@RequestBody Map<String, Object> data) {
+    try {
+        // Validar si ya existe un paciente con el mismo correo
         try {
-            // Validar si ya existe un paciente con el mismo correo
-            try {
-                service.buscarPorCorreo(data.get("email").toString());
-                return ResponseEntity.status(HttpStatus.CONFLICT).body("Ya existe un paciente registrado con este correo electrónico.");
-            } catch (RuntimeException e) {
-                // Si lanza excepción, significa que NO existe y se puede continuar
-            }
-
-            // Validar si ya existe un contacto de emergencia con el mismo teléfono
-            Map<String, Object> contactoMap = (Map<String, Object>) data.get("contactoEmergencia");
-            String telefonoContacto = contactoMap.get("telefono").toString();
-            Optional<ContactoEmergencia> contactoExistente = contactoEmergenciaRepository.findByTelefono(telefonoContacto);
-            if (contactoExistente.isPresent()) {
-                return ResponseEntity.status(HttpStatus.CONFLICT).body("Ya existe un contacto de emergencia registrado con este teléfono.");
-            }
-
-            Paciente paciente = new Paciente();
-            paciente.setPkId(UUID.randomUUID().toString());
-
-            // Recuperar contactoEmergencia por ID del JSON
-            Long contactoId = Long.valueOf(contactoMap.get("pkId").toString());
-            ContactoEmergencia contacto = contactoEmergenciaRepository.findById(contactoId)
-                .orElseThrow(() -> new RuntimeException("Contacto de emergencia no encontrado"));
-            paciente.setContactoEmergencia(contacto);
-
-            // Otros campos permanecen igual
-            paciente.setNombre(data.get("nombre").toString());
-            paciente.setApellido(data.getOrDefault("apellido", "").toString());
-            paciente.setIdDocumento(data.get("idDocumento").toString());
-            paciente.setTelefono(data.get("telefono").toString());
-            paciente.setEmail(data.get("email").toString());
-            paciente.setDireccion(data.getOrDefault("direccion", "").toString());
-            paciente.setGenero(data.getOrDefault("genero", "").toString());
-            paciente.setUrlImagen(data.getOrDefault("urlImagen", "").toString());
-
-            Object etapaRaw = data.get("etapa");
-            int etapa = (etapaRaw instanceof Integer) ? (Integer) etapaRaw : Integer.parseInt(etapaRaw.toString());
-            paciente.setEtapa(etapa);
-
-            Object codigoCieRaw = data.get("codigoCIE");
-            int codigo_cie = (codigoCieRaw instanceof Integer) ? (Integer) codigoCieRaw : Integer.parseInt(codigoCieRaw.toString());
-            paciente.setCodigoCIE(codigo_cie);
-
-            String fechaNacStr = data.get("fechaNacimiento").toString();
-            paciente.setFechaNacimiento(Timestamp.valueOf(fechaNacStr + " 00:00:00"));
-
-            Long idCentro = Long.parseLong(data.get("centroMedico").toString());
-            CentroMedico centro = centroMedicoRepository.findById(idCentro)
-                    .orElseThrow(() -> new RuntimeException("Centro médico no encontrado"));
-            paciente.setCentroMedico(centro);
-
-            String idTipoDoc = data.get("tipoDocumento").toString();
-            TipoDocumento tipoDoc = tipoDocumentoRepository.findById(idTipoDoc)
-                    .orElseThrow(() -> new RuntimeException("Tipo de documento no encontrado"));
-            paciente.setTipoDocumento(tipoDoc);
-
-            // Crear usuario en Firebase Authentication
-            UserRecord userRecord;
-            try {
-                userRecord = FirebaseAuth.getInstance().getUserByEmail(paciente.getEmail());
-            } catch (Exception e) {
-                UserRecord.CreateRequest request = new UserRecord.CreateRequest()
-                        .setEmail(paciente.getEmail())
-                        .setPassword("paciente123") // contraseña temporal
-                        .setEmailVerified(false)
-                        .setDisabled(false);
-                userRecord = FirebaseAuth.getInstance().createUser(request);
-            }
-
-            // Asignar custom claim (rol: paciente)
-            Map<String, Object> claims = new HashMap<>();
-            claims.put("rol", "paciente");
-            FirebaseAuth.getInstance().setCustomUserClaims(userRecord.getUid(), claims);
-
-            // VALIDACIÓN DE DUPLICADOS + GUARDADO
-            Paciente nuevo = service.guardarConValidacion(paciente);
-            return ResponseEntity.status(HttpStatus.CREATED).body(nuevo);
-
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error al guardar paciente: " + e.getMessage());
+            service.buscarPorCorreo(data.get("email").toString());
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("Ya existe un paciente registrado con este correo electrónico.");
+        } catch (RuntimeException e) {
+            // Si lanza excepción, significa que NO existe y se puede continuar
         }
+
+        // Validar si ya existe un contacto de emergencia con el mismo teléfono
+        Map<String, Object> contactoMap = (Map<String, Object>) data.get("contactoEmergencia");
+        String telefonoContacto = contactoMap.get("telefono").toString();
+        Optional<ContactoEmergencia> contactoExistente = contactoEmergenciaRepository.findByTelefono(telefonoContacto);
+        if (contactoExistente.isPresent()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("Ya existe un contacto de emergencia registrado con este teléfono.");
+        }
+
+        Paciente paciente = new Paciente();
+        paciente.setPkId(UUID.randomUUID().toString());
+
+        // Contacto de emergencia
+        Long contactoId = Long.valueOf(contactoMap.get("pkId").toString());
+        ContactoEmergencia contacto = contactoEmergenciaRepository.findById(contactoId)
+                .orElseThrow(() -> new RuntimeException("Contacto de emergencia no encontrado"));
+        paciente.setContactoEmergencia(contacto);
+
+        // Datos básicos
+        paciente.setNombre(data.get("nombre").toString());
+        paciente.setApellido(data.getOrDefault("apellido", "").toString());
+        paciente.setIdDocumento(data.get("idDocumento").toString());
+        paciente.setTelefono(data.get("telefono").toString());
+        paciente.setEmail(data.get("email").toString());
+        paciente.setDireccion(data.getOrDefault("direccion", "").toString());
+        paciente.setGenero(data.getOrDefault("genero", "").toString());
+        paciente.setUrlImagen(data.getOrDefault("urlImagen", "").toString());
+
+        // Números enteros
+        paciente.setEtapa(Integer.parseInt(data.get("etapa").toString()));
+        paciente.setCodigoCIE(Integer.parseInt(data.get("codigoCIE").toString()));
+
+        // Fecha
+        String fechaNacStr = data.get("fechaNacimiento").toString();
+        paciente.setFechaNacimiento(Timestamp.valueOf(fechaNacStr + " 00:00:00"));
+
+        // Centro médico (desestructurado correctamente)
+        Map<String, Object> centroMap = (Map<String, Object>) data.get("centroMedico");
+        Long idCentro = Long.valueOf(centroMap.get("pkId").toString());
+        CentroMedico centro = centroMedicoRepository.findById(idCentro)
+                .orElseThrow(() -> new RuntimeException("Centro médico no encontrado"));
+        paciente.setCentroMedico(centro);
+
+        // Tipo de documento con validación clara
+        Map<String, Object> tipoDocMap = (Map<String, Object>) data.get("tipoDocumento");
+        if (tipoDocMap == null || tipoDocMap.get("id") == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Falta el tipo de documento");
+        }
+        String idTipoDoc = tipoDocMap.get("id").toString();
+        TipoDocumento tipoDoc = tipoDocumentoRepository.findById(idTipoDoc)
+                .orElseThrow(() -> new RuntimeException("Tipo de documento no encontrado"));
+        paciente.setTipoDocumento(tipoDoc);
+
+        // Crear usuario en Firebase Authentication
+        UserRecord userRecord;
+        try {
+            userRecord = FirebaseAuth.getInstance().getUserByEmail(paciente.getEmail());
+        } catch (Exception e) {
+            UserRecord.CreateRequest request = new UserRecord.CreateRequest()
+                    .setEmail(paciente.getEmail())
+                    .setPassword("paciente123") // contraseña temporal
+                    .setEmailVerified(false)
+                    .setDisabled(false);
+            userRecord = FirebaseAuth.getInstance().createUser(request);
+        }
+
+        // Asignar custom claim (rol: paciente)
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("rol", "paciente");
+        FirebaseAuth.getInstance().setCustomUserClaims(userRecord.getUid(), claims);
+
+        // Guardar
+        Paciente nuevo = service.guardarConValidacion(paciente);
+        return ResponseEntity.status(HttpStatus.CREATED).body(nuevo);
+
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error al guardar paciente: " + e.getMessage());
     }
+}
+
+
 
     @GetMapping("/centro-medico/{id}")
     @Operation(summary = "Obtener pacientes por centro médico", description = "Retorna los pacientes asociados a un centro médico")
@@ -175,89 +183,100 @@ public class PacienteController {
         }
     }
 
-    @PostMapping("/registrar-completo")
-    @Operation(summary = "Registrar paciente con lógica extendida", description = "Registra un paciente completo con contacto de emergencia existente o nuevo, y lo vincula al médico")
-    @ApiResponse(responseCode = "201", description = "Paciente creado exitosamente")
-    public ResponseEntity<?> registrarPacienteCompleto(@RequestBody Map<String, Object> data) {
+   @PostMapping("/registrar-completo")
+@Operation(summary = "Registrar paciente con lógica extendida", description = "Registra un paciente completo con contacto de emergencia existente o nuevo, y lo vincula al médico")
+@ApiResponse(responseCode = "201", description = "Paciente creado exitosamente")
+public ResponseEntity<?> registrarPacienteCompleto(@RequestBody Map<String, Object> data) {
+    try {
+        System.out.println("📥 Petición recibida en el backend para registrar paciente completo");
+
+        // Verificar si ya existe un paciente con el correo
         try {
-            // Verificar si ya existe un paciente con el correo
-            try {
-                service.buscarPorCorreo(data.get("email").toString());
-                return ResponseEntity.status(HttpStatus.CONFLICT).body("Ya existe un paciente con ese correo.");
-            } catch (RuntimeException e) {
-                // No existe, continúa
-            }
-
-            // Paso 1: Recuperar o validar contacto de emergencia por ID
-            Map<String, Object> contactoMap = (Map<String, Object>) data.get("contactoEmergencia");
-            Long contactoId = Long.valueOf(contactoMap.get("pkId").toString());
-            ContactoEmergencia contacto = contactoEmergenciaRepository.findById(contactoId)
-                .orElseThrow(() -> new RuntimeException("Contacto de emergencia no encontrado con ID: " + contactoId));
-
-            // Paso 2: Armar entidad Paciente
-            Paciente paciente = new Paciente();
-            paciente.setPkId(UUID.randomUUID().toString());
-            paciente.setContactoEmergencia(contacto);
-            paciente.setNombre(data.get("nombre").toString());
-            paciente.setApellido(data.getOrDefault("apellido", "").toString());
-            paciente.setIdDocumento(data.get("idDocumento").toString());
-            paciente.setTelefono(data.get("telefono").toString());
-            paciente.setEmail(data.get("email").toString());
-            paciente.setDireccion(data.getOrDefault("direccion", "").toString());
-            paciente.setGenero(data.getOrDefault("genero", "").toString());
-            paciente.setUrlImagen(data.getOrDefault("urlImagen", "").toString());
-
-            Object etapaRaw = data.get("etapa");
-            int etapa = (etapaRaw instanceof Integer) ? (Integer) etapaRaw : Integer.parseInt(etapaRaw.toString());
-            paciente.setEtapa(etapa);
-
-            Object codigoCieRaw = data.get("codigoCIE");
-            int codigo_cie = (codigoCieRaw instanceof Integer) ? (Integer) codigoCieRaw : Integer.parseInt(codigoCieRaw.toString());
-            paciente.setCodigoCIE(codigo_cie);
-
-            String fechaNacStr = data.get("fechaNacimiento").toString();
-            paciente.setFechaNacimiento(Timestamp.valueOf(fechaNacStr + " 00:00:00"));
-
-            // Centro médico
-            Long idCentro = Long.parseLong(data.get("centroMedico").toString());
-            CentroMedico centro = centroMedicoRepository.findById(idCentro)
-                .orElseThrow(() -> new RuntimeException("Centro médico no encontrado"));
-            paciente.setCentroMedico(centro);
-
-            // Tipo de documento
-            String idTipoDoc = data.get("tipoDocumento").toString();
-            TipoDocumento tipoDoc = tipoDocumentoRepository.findById(idTipoDoc)
-                .orElseThrow(() -> new RuntimeException("Tipo de documento no encontrado"));
-            paciente.setTipoDocumento(tipoDoc);
-
-            // Crear usuario en Firebase Authentication (si no existe)
-            UserRecord userRecord;
-            try {
-                userRecord = FirebaseAuth.getInstance().getUserByEmail(paciente.getEmail());
-            } catch (Exception e) {
-                UserRecord.CreateRequest request = new UserRecord.CreateRequest()
-                    .setEmail(paciente.getEmail())
-                    .setPassword("paciente123") // Contraseña temporal
-                    .setEmailVerified(false)
-                    .setDisabled(false);
-                userRecord = FirebaseAuth.getInstance().createUser(request);
-            }
-
-            // Asignar custom claim (rol: paciente)
-            Map<String, Object> claims = new HashMap<>();
-            claims.put("rol", "paciente");
-            FirebaseAuth.getInstance().setCustomUserClaims(userRecord.getUid(), claims);
-
-            // Guardar paciente
-            Paciente nuevo = service.guardarConValidacion(paciente);
-            return ResponseEntity.status(HttpStatus.CREATED).body(nuevo);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("❌ Error al registrar paciente: " + e.getMessage());
+            service.buscarPorCorreo(data.get("email").toString());
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Ya existe un paciente con ese correo.");
+        } catch (RuntimeException e) {
+            // No existe, continúa
         }
+
+        // Paso 1: Recuperar o validar contacto de emergencia por ID
+        Map<String, Object> contactoMap = (Map<String, Object>) data.get("contactoEmergencia");
+        Long contactoId = Long.valueOf(contactoMap.get("pkId").toString());
+        ContactoEmergencia contacto = contactoEmergenciaRepository.findById(contactoId)
+            .orElseThrow(() -> new RuntimeException("Contacto de emergencia no encontrado con ID: " + contactoId));
+
+        // Paso 2: Armar entidad Paciente
+        Paciente paciente = new Paciente();
+        paciente.setPkId(UUID.randomUUID().toString());
+        paciente.setContactoEmergencia(contacto);
+        paciente.setNombre(data.get("nombre").toString());
+        paciente.setApellido(data.getOrDefault("apellido", "").toString());
+        paciente.setIdDocumento(data.get("idDocumento").toString());
+        paciente.setTelefono(data.get("telefono").toString());
+        paciente.setEmail(data.get("email").toString());
+        paciente.setDireccion(data.getOrDefault("direccion", "").toString());
+        paciente.setGenero(data.getOrDefault("genero", "").toString());
+        paciente.setUrlImagen(data.getOrDefault("urlImagen", "").toString());
+
+        Object etapaRaw = data.get("etapa");
+        int etapa = (etapaRaw instanceof Integer) ? (Integer) etapaRaw : Integer.parseInt(etapaRaw.toString());
+        paciente.setEtapa(etapa);
+
+        Object codigoCieRaw = data.get("codigoCIE");
+        int codigoCie = (codigoCieRaw instanceof Integer) ? (Integer) codigoCieRaw : Integer.parseInt(codigoCieRaw.toString());
+        paciente.setCodigoCIE(codigoCie);
+
+        String fechaNacStr = data.get("fechaNacimiento").toString();
+        paciente.setFechaNacimiento(Timestamp.valueOf(fechaNacStr + " 00:00:00"));
+
+        // Centro médico
+        Map<String, Object> centroMap = (Map<String, Object>) data.get("centroMedico");
+        Long idCentro = Long.valueOf(centroMap.get("pkId").toString());
+        CentroMedico centro = centroMedicoRepository.findById(idCentro)
+            .orElseThrow(() -> new RuntimeException("Centro médico no encontrado"));
+        paciente.setCentroMedico(centro);
+
+        // Tipo de documento
+        Map<String, Object> tipoDocMap = (Map<String, Object>) data.get("tipoDocumento");
+        if (tipoDocMap == null || tipoDocMap.get("id") == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Falta el tipo de documento");
+        }
+        String idTipoDoc = tipoDocMap.get("id").toString();
+        TipoDocumento tipoDoc = tipoDocumentoRepository.findById(idTipoDoc)
+            .orElseThrow(() -> new RuntimeException("Tipo de documento no encontrado"));
+        paciente.setTipoDocumento(tipoDoc);
+
+        // Crear usuario en Firebase Authentication (si no existe)
+        UserRecord userRecord;
+        try {
+            userRecord = FirebaseAuth.getInstance().getUserByEmail(paciente.getEmail());
+        } catch (Exception e) {
+            UserRecord.CreateRequest request = new UserRecord.CreateRequest()
+                .setEmail(paciente.getEmail())
+                .setPassword("paciente123") // Contraseña temporal
+                .setEmailVerified(false)
+                .setDisabled(false);
+            userRecord = FirebaseAuth.getInstance().createUser(request);
+        }
+
+        // Asignar custom claim (rol: paciente)
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("rol", "paciente");
+        FirebaseAuth.getInstance().setCustomUserClaims(userRecord.getUid(), claims);
+
+        // Guardar paciente
+        Paciente nuevo = service.guardarConValidacion(paciente);
+
+        System.out.println("✅ Paciente guardado exitosamente con ID: " + nuevo.getPkId());
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(nuevo);
+
+    } catch (Exception e) {
+        e.printStackTrace();
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("❌ Error al registrar paciente: " + e.getMessage());
     }
+}
+
 
 
 }

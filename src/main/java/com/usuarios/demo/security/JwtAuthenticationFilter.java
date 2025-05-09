@@ -44,13 +44,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             System.out.println("🔍 Decoded JWT Token: " + jwtService.decodeToken(jwt));
 
             // Verificar si el usuario es el administrador quemado
-            if ("admin@kala.com".equals(email)) { // Usuario quemado
-                rol = "ADMIN"; // Asignar rol ADMIN al administrador quemado
+        if ("admin@kala.com".equals(email)) {
+                rol = "ADMIN";
             } else {
-                rol = jwtService.extractFirstAvailableClaim(jwt, "role", "rol"); // Extraer rol del token para otros usuarios
+                rol = jwtService.extractFirstAvailableClaim(jwt, "role", "rol");
             }
 
-            rol = rol.trim().toLowerCase(); 
+            if (rol != null) {
+                rol = rol.trim().toLowerCase();
+            } else {
+                rol = "sin_rol"; // o cualquier nombre que le quieras dar a este rol público
+                System.out.println("👤 Usuario sin rol definido, asignando 'sin_rol'");
+}
 
             if (email != null && rol != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 var authorities = List.of(new SimpleGrantedAuthority(rol)); 

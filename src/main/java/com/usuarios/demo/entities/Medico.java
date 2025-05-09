@@ -1,9 +1,10 @@
 package com.usuarios.demo.entities;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.*;
-import java.sql.Timestamp;
-import io.swagger.v3.oas.annotations.media.Schema;
+
+import java.util.Date;
 
 @Entity
 @Table(name = "medico")
@@ -18,21 +19,23 @@ public class Medico {
     private String pkId;
 
     @ManyToOne
-    @JoinColumn(name = "fk_id_centro_medico") 
+    @JoinColumn(name = "fk_id_centro_medico")
     private CentroMedico centroMedico;
 
     private String nombre;
     private String apellido;
 
     @ManyToOne
-    @JoinColumn(name = "fk_id_tipo_documento") 
+    @JoinColumn(name = "fk_id_tipo_documento")
     private TipoDocumento tipoDocumento;
 
     @Column(name = "id_documento", unique = true, nullable = false)
     private String idDocumento;
 
     @Column(name = "fecha_nacimiento")
-    private Timestamp fechaNacimiento;
+    @Temporal(TemporalType.TIMESTAMP)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    private Date fechaNacimiento;
 
     private String profesion;
     private String especialidad;
