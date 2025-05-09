@@ -34,10 +34,11 @@ public class ContactoEmergenciaController {
 
     @Operation(summary = "Guardar un contacto de emergencia", description = "Recibe un objeto ContactoEmergencia en el cuerpo de la petición y lo almacena.")
     @ApiResponse(responseCode = "200", description = "Contacto guardado correctamente")
-    @PostMapping
+    @PostMapping("/crear")
     public ContactoEmergencia guardar(@RequestBody ContactoEmergencia contactoEmergencia) {
         return service.guardar(contactoEmergencia);
     }
+
 
     @GetMapping("/por-telefono")
     public ResponseEntity<?> buscarPorTelefono(@RequestParam String telefono) {
@@ -45,6 +46,8 @@ public class ContactoEmergenciaController {
         return existente.map(ResponseEntity::ok)
                         .orElseGet(() -> ResponseEntity.noContent().build());
     }
+
+
     
 
 
