@@ -76,7 +76,8 @@ public ResponseEntity<?> guardar(@RequestBody Medico medico) {
 
         // ✅ Asignar custom claim correcto: "role"
         Map<String, Object> claims = new HashMap<>();
-        claims.put("role", "medico"); // Este sí lo detecta Spring Security
+        claims.put("rol", "medico"); // 🔥 Este es el que tu sistema está esperando
+
 
         FirebaseAuth.getInstance().setCustomUserClaims(userRecord.getUid(), claims);
 
@@ -96,16 +97,35 @@ public ResponseEntity<?> guardar(@RequestBody Medico medico) {
 
     @Operation(summary = "Eliminar un médico", description = "Elimina el médico identificado por el ID proporcionado")
     @ApiResponse(responseCode = "200", description = "Médico eliminado correctamente")
-    @DeleteMapping("/{id}")
-    public ResponseEntity<String> eliminar(@PathVariable String id) {
-        try {
-            service.eliminar(id);
-            return ResponseEntity.ok("Médico eliminado correctamente");
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("❌ Error al eliminar el médico: " + e.getMessage());
+   @DeleteMapping("/{id}")
+public ResponseEntity<String> eliminar(@PathVariable String id) {
+    try {
+        Optional<Medico> medicoOpt = service.obtenerPorId(id);
+        if (medicoOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Médico no encontrado");
         }
+
+        Medico medico = medicoOpt.get();
+        String correo = medico.getCorreo();
+
+        // Eliminar de Firebase
+        try {
+            UserRecord user = FirebaseAuth.getInstance().getUserByEmail(correo);
+            FirebaseAuth.getInstance().deleteUser(user.getUid());
+            System.out.println("🔥 Usuario eliminado de Firebase: " + correo);
+        } catch (Exception ex) {
+            System.out.println("⚠️ No se encontró en Firebase (puede haber sido eliminado antes)");
+        }
+
+        // Eliminar de base de datos
+        service.eliminar(id);
+        return ResponseEntity.ok("Médico eliminado correctamente");
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("❌ Error al eliminar el médico: " + e.getMessage());
     }
+}
+
 
     @Operation(summary = "Actualizar información de un médico", description = "Modifica los datos de un médico ya registrado")
     @ApiResponse(responseCode = "200", description = "Médico actualizado correctamente")

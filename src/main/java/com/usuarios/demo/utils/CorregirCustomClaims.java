@@ -13,21 +13,30 @@ public class CorregirCustomClaims {
 
         for (ExportedUserRecord user : page.iterateAll()) {
             Map<String, Object> claims = user.getCustomClaims();
+            Map<String, Object> nuevosClaims = new HashMap<>();
 
-            if (claims != null && claims.containsKey("rol")) {
-                // ⚡ Encontramos un claim "rol" mal escrito
-                String valorRol = claims.get("rol").toString();
-                System.out.println("Corrigiendo claim para usuario: " + user.getEmail() + ", rol: " + valorRol);
+            // 1. Extraer cualquier rol existente
+            String rolDetectado = null;
+            if (claims != null) {
+                if (claims.containsKey("rol")) {
+                    rolDetectado = claims.get("rol").toString().toLowerCase();
+                } else if (claims.containsKey("role")) {
+                    rolDetectado = claims.get("role").toString().toLowerCase();
+                }
+            }
 
-                // Crear un nuevo mapa de claims correctos
-                Map<String, Object> nuevosClaims = new HashMap<>(claims);
-                nuevosClaims.remove("rol"); // Eliminar el viejo
-                nuevosClaims.put("rol", valorRol); // Agregar el correcto
+            // 2. Normalizar rol si aplica
+            if ("doctor".equals(rolDetectado)) {
+                rolDetectado = "medico";
+            }
 
-                // Actualizar claims en Firebase
+            // 3. Si encontramos un rol válido, lo actualizamos
+            if (rolDetectado != null) {
+                nuevosClaims.put("rol", rolDetectado);
                 FirebaseAuth.getInstance().setCustomUserClaims(user.getUid(), nuevosClaims);
-
-                System.out.println("✅ Claim corregido para: " + user.getEmail());
+                System.out.println("✅ Claim corregido para: " + user.getEmail() + " → " + rolDetectado);
+            } else {
+                System.out.println("⚠️ Usuario sin rol: " + user.getEmail());
             }
         }
 

@@ -46,21 +46,28 @@ public class PacienteService {
 
     @Transactional
     public void eliminar(String id) {
+        // Buscar paciente por ID
         Paciente paciente = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Paciente no encontrado"));
 
+        // Obtener las vinculaciones del paciente
         List<Vinculacion> vinculaciones = vinculacionRepository.findByPaciente_PkId(id);
 
+        // Si no tiene vinculaciones, lanzar excepción
         if (vinculaciones.isEmpty()) {
             throw new RuntimeException("No existen vinculaciones para este paciente.");
         }
 
+        // Eliminar todas las vinculaciones con los médicos
         for (Vinculacion vinculacion : vinculaciones) {
             Medico medico = vinculacion.getMedico();
             System.out.println("Médico asociado: " + medico.getNombre());
+
+            // Eliminar la vinculación del paciente con el médico
             vinculacionRepository.delete(vinculacion);
         }
 
+        // Finalmente, eliminar el paciente
         repository.delete(paciente);
         System.out.println("Paciente y sus vinculaciones eliminados con éxito.");
     }
@@ -69,6 +76,8 @@ public class PacienteService {
         Paciente existente = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Paciente no encontrado"));
 
+        // Validar existencia de centro médico y tipo documento si llegan como objetos
+        // con solo ID
         if (nuevosDatos.getCentroMedico() != null) {
             Long idCentro = nuevosDatos.getCentroMedico().getPkId();
             CentroMedico centro = centroMedicoRepository.findById(idCentro)
@@ -83,6 +92,7 @@ public class PacienteService {
             existente.setTipoDocumento(tipo);
         }
 
+        // Actualizar campos
         existente.setNombre(nuevosDatos.getNombre());
         existente.setApellido(nuevosDatos.getApellido());
         existente.setIdDocumento(nuevosDatos.getIdDocumento());
@@ -111,11 +121,7 @@ public class PacienteService {
     }
 
     public Paciente guardarConValidacion(Paciente paciente) {
-        // ✅ Validación añadida
-        if (paciente.getTipoDocumento() == null || paciente.getTipoDocumento().getId() == null) {
-            throw new RuntimeException("Tipo de documento no proporcionado");
-        }
-
+        // Verificar si ya existe por tipo y número de documento
         Optional<Paciente> existentePorDoc = repository.findByTipoDocumento_IdAndIdDocumento(
                 paciente.getTipoDocumento().getId(), paciente.getIdDocumento());
 
@@ -123,6 +129,7 @@ public class PacienteService {
             throw new RuntimeException("Ya existe un paciente con ese tipo y número de documento");
         }
 
+        // Verificar si ya existe el teléfono
         boolean existeTelefono = repository.existsByTelefono(paciente.getTelefono());
         if (existeTelefono) {
             throw new RuntimeException("Ya existe un paciente con ese número de teléfono");
@@ -155,6 +162,27 @@ public class PacienteService {
     }
 
     public List<Paciente> obtenerPorCentroMedico(Long idCentro) {
-        return repository.findByCentroMedico_PkId(idCentro);
+    return repository.findByCentroMedico_PkId(idCentro);
     }
+    @Transactional
+public void eliminarPorCorreo(String correo) {
+    Optional<Paciente> pacienteOpt = repository.findByEmail(correo);
+
+    if (pacienteOpt.isEmpty()) {
+        System.out.println("⚠️ No se encontró paciente con correo: " + correo);
+        return; // o lanza una excepción si prefieres
+    }
+
+    Paciente paciente = pacienteOpt.get();
+
+    List<Vinculacion> vinculaciones = vinculacionRepository.findByPaciente_PkId(paciente.getPkId());
+
+    for (Vinculacion vinculacion : vinculaciones) {
+        vinculacionRepository.delete(vinculacion);
+    }
+
+    repository.delete(paciente);
+    System.out.println("🗑️ Paciente eliminado de la base de datos y sus vinculaciones también.");
+}
+
 }

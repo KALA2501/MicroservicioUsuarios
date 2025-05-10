@@ -103,5 +103,29 @@ public class MedicoService {
     public Optional<Medico> obtenerPorCorreo(String correo) {
         return repository.findByCorreo(correo);
     }
+public void eliminarPorCorreo(String correo) {
+    Optional<Medico> medicoOpt = repository.findByCorreo(correo);
+
+    if (medicoOpt.isEmpty()) {
+        System.out.println("⚠️ No se encontró médico con correo: " + correo);
+        return;
+    }
+
+    Medico medico = medicoOpt.get();
+
+    // 1. Eliminar en Firebase Authentication
+    try {
+        UserRecord userRecord = FirebaseAuth.getInstance().getUserByEmail(medico.getCorreo());
+        FirebaseAuth.getInstance().deleteUser(userRecord.getUid());
+        System.out.println("✅ Usuario de Firebase eliminado: " + medico.getCorreo());
+    } catch (FirebaseAuthException e) {
+        System.err.println("❌ Error al eliminar usuario en Firebase: " + e.getMessage());
+    }
+
+    // 2. Eliminar en base de datos
+    repository.delete(medico);
+    System.out.println("✅ Médico eliminado de la base de datos con correo: " + correo);
+}
+
 
 }
