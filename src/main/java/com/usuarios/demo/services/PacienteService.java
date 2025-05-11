@@ -4,6 +4,9 @@ import com.usuarios.demo.entities.*;
 import com.usuarios.demo.repositories.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
+
 
 import java.util.List;
 import java.util.Optional;
@@ -157,15 +160,18 @@ public class PacienteService {
     }
 
     public Paciente buscarPorCorreo(String email) {
-        Optional<Paciente> paciente = repository.findByEmail(email);
-        return paciente.orElseThrow(() -> new RuntimeException("Paciente no encontrado"));
+        System.out.println("📧 Buscando paciente con correo: " + email);
+        return repository.findByEmailIgnoreCase(email)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Paciente no encontrado"));
     }
+
 
     public List<Paciente> obtenerPorCentroMedico(Long idCentro) {
     return repository.findByCentroMedico_PkId(idCentro);
     }
+    
     @Transactional
-public void eliminarPorCorreo(String correo) {
+    public void eliminarPorCorreo(String correo) {
     Optional<Paciente> pacienteOpt = repository.findByEmail(correo);
 
     if (pacienteOpt.isEmpty()) {

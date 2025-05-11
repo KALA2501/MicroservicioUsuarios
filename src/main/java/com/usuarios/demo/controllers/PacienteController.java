@@ -23,6 +23,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.security.Principal;
+
 
 @RestController
 @RequestMapping("/api/pacientes")
@@ -53,6 +55,14 @@ public class PacienteController {
     @Autowired
     private ContactoEmergenciaRepository contactoEmergenciaRepository;
 
+    @GetMapping("/mi-perfil")
+    public ResponseEntity<?> obtenerMiPerfil(Principal principal) {
+        String email = principal.getName(); // <-- esto es 'paciente@gmail.com'
+        Paciente paciente = service.buscarPorCorreo(email);
+        return ResponseEntity.ok(paciente.getPkId());
+    }
+
+
     @Operation(summary = "Obtener todos los pacientes", description = "Retorna una lista de todos los pacientes registrados en el sistema")
     @ApiResponse(responseCode = "200", description = "Lista de pacientes obtenida exitosamente")
     @GetMapping
@@ -74,10 +84,10 @@ public class PacienteController {
         }
     }
 
- @Operation(summary = "Guardar un nuevo paciente", description = "Crea y almacena un nuevo paciente a partir de los datos proporcionados")
-@ApiResponse(responseCode = "201", description = "Paciente guardado correctamente")
-@PostMapping("/crear")
-public ResponseEntity<?> guardar(@RequestBody Map<String, Object> data) {
+    @Operation(summary = "Guardar un nuevo paciente", description = "Crea y almacena un nuevo paciente a partir de los datos proporcionados")
+    @ApiResponse(responseCode = "201", description = "Paciente guardado correctamente")
+    @PostMapping("/crear")
+    public ResponseEntity<?> guardar(@RequestBody Map<String, Object> data) {
     try {
         // Validar si ya existe un paciente con el mismo correo
         try {
@@ -170,7 +180,6 @@ public ResponseEntity<?> guardar(@RequestBody Map<String, Object> data) {
 }
 
 
-
     @GetMapping("/centro-medico/{id}")
     @Operation(summary = "Obtener pacientes por centro médico", description = "Retorna los pacientes asociados a un centro médico")
     public ResponseEntity<?> obtenerPacientesPorCentro(@PathVariable Long id) {
@@ -184,9 +193,9 @@ public ResponseEntity<?> guardar(@RequestBody Map<String, Object> data) {
     }
 
    @PostMapping("/registrar-completo")
-@Operation(summary = "Registrar paciente con lógica extendida", description = "Registra un paciente completo con contacto de emergencia existente o nuevo, y lo vincula al médico")
-@ApiResponse(responseCode = "201", description = "Paciente creado exitosamente")
-public ResponseEntity<?> registrarPacienteCompleto(@RequestBody Map<String, Object> data) {
+    @Operation(summary = "Registrar paciente con lógica extendida", description = "Registra un paciente completo con contacto de emergencia existente o nuevo, y lo vincula al médico")
+    @ApiResponse(responseCode = "201", description = "Paciente creado exitosamente")
+    public ResponseEntity<?> registrarPacienteCompleto(@RequestBody Map<String, Object> data) {
     try {
         System.out.println("📥 Petición recibida en el backend para registrar paciente completo");
 

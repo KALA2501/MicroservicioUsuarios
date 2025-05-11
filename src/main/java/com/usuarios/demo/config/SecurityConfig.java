@@ -51,7 +51,7 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers("/api/contacto-emergencia/**").hasAuthority("medico")
                         .requestMatchers("/api/pacientes/centro-medico/**").permitAll()
-                        .requestMatchers("/api/pacientes/**").hasAuthority("medico")
+                        .requestMatchers("/api/pacientes/**").hasAnyAuthority("medico", "paciente")
 
                         .anyRequest().authenticated() // Todo lo demás requiere token
                 )

@@ -3,6 +3,8 @@ package com.usuarios.demo.repositories;
 import com.usuarios.demo.entities.*;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -31,5 +33,8 @@ public interface PacienteRepository extends JpaRepository<Paciente, String> {
     Optional<Paciente> findByPkId(String pkId);
 
     List<Paciente> findByCentroMedico_PkId(Long idCentro);
+
+    @Query("SELECT p FROM Paciente p WHERE LOWER(TRIM(p.email)) = LOWER(TRIM(:email))")
+    Optional<Paciente> findByEmailIgnoreCase(@Param("email") String email);
 
 }
