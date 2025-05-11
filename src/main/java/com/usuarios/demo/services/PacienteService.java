@@ -8,6 +8,7 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 
 
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -139,6 +140,67 @@ public class PacienteService {
         }
 
         return repository.save(paciente);
+    }
+
+    public Paciente guardarConValidacion(Paciente paciente, Medico medico) {
+        // Verificar si ya existe por tipo y número de documento
+        Optional<Paciente> existentePorDoc = repository.findByTipoDocumento_IdAndIdDocumento(
+                paciente.getTipoDocumento().getId(), paciente.getIdDocumento());
+
+        if (existentePorDoc.isPresent()) {
+            throw new RuntimeException("Ya existe un paciente con ese tipo y número de documento");
+        }
+
+        // Verificar si ya existe el teléfono
+        boolean existeTelefono = repository.existsByTelefono(paciente.getTelefono());
+        if (existeTelefono) {
+            throw new RuntimeException("Ya existe un paciente con ese número de teléfono");
+        }
+
+        // Guardar el paciente
+        Paciente nuevoPaciente = repository.save(paciente);
+
+        // Crear la vinculación con el médico
+        if (medico != null) {
+            Vinculacion vinculacion = new Vinculacion();
+            vinculacion.setPaciente(nuevoPaciente);
+            vinculacion.setMedico(medico);
+            vinculacion.setFechaVinculado(new Timestamp(System.currentTimeMillis()));
+            vinculacionRepository.save(vinculacion);
+        }
+
+        return nuevoPaciente;
+    }
+
+    public Paciente guardarConValidacion(Paciente paciente, Medico medico, TipoVinculacion tipoVinculacion) {
+        // Verificar si ya existe por tipo y número de documento
+        Optional<Paciente> existentePorDoc = repository.findByTipoDocumento_IdAndIdDocumento(
+                paciente.getTipoDocumento().getId(), paciente.getIdDocumento());
+
+        if (existentePorDoc.isPresent()) {
+            throw new RuntimeException("Ya existe un paciente con ese tipo y número de documento");
+        }
+
+        // Verificar si ya existe el teléfono
+        boolean existeTelefono = repository.existsByTelefono(paciente.getTelefono());
+        if (existeTelefono) {
+            throw new RuntimeException("Ya existe un paciente con ese número de teléfono");
+        }
+
+        // Guardar el paciente
+        Paciente nuevoPaciente = repository.save(paciente);
+
+        // Crear la vinculación con el médico y el tipo de vinculación
+        if (medico != null && tipoVinculacion != null) {
+            Vinculacion vinculacion = new Vinculacion();
+            vinculacion.setPaciente(nuevoPaciente);
+            vinculacion.setMedico(medico);
+            vinculacion.setTipoVinculacion(tipoVinculacion);
+            vinculacion.setFechaVinculado(new Timestamp(System.currentTimeMillis()));
+            vinculacionRepository.save(vinculacion);
+        }
+
+        return nuevoPaciente;
     }
 
     public List<Paciente> obtenerPacientesDelMedico(String token) {
