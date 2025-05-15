@@ -5,8 +5,12 @@ import com.google.firebase.auth.ListUsersPage;
 import com.google.firebase.auth.ExportedUserRecord;
 import java.util.HashMap;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CorregirCustomClaims {
+
+    private static final Logger logger = LoggerFactory.getLogger(CorregirCustomClaims.class);
 
     public void corregirClaims() throws Exception {
         ListUsersPage page = FirebaseAuth.getInstance().listUsers(null);
@@ -34,12 +38,12 @@ public class CorregirCustomClaims {
             if (rolDetectado != null) {
                 nuevosClaims.put("rol", rolDetectado);
                 FirebaseAuth.getInstance().setCustomUserClaims(user.getUid(), nuevosClaims);
-                System.out.println("✅ Claim corregido para: " + user.getEmail() + " → " + rolDetectado);
+                logger.info("✅ Claim corregido para: {} → {}", user.getEmail(), rolDetectado);
             } else {
-                System.out.println("⚠️ Usuario sin rol: " + user.getEmail());
+                logger.warn("⚠️ Usuario sin rol: {}", user.getEmail());
             }
         }
 
-        System.out.println("🎯 Corrección de claims completada.");
+        logger.info("🎯 Corrección de claims completada.");
     }
 }

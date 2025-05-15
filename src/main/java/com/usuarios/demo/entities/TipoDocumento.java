@@ -23,4 +23,6 @@ public class TipoDocumento {
 
     @Column(length = 100)
     private String tipo;
+
+    
 }

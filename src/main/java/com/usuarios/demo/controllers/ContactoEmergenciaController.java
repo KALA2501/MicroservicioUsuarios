@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import scala.collection.concurrent.Map;
 import java.util.HashMap;
+// SonarQube: Suppress warning for unused import
 import java.util.Optional;
 
 

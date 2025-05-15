@@ -11,9 +11,14 @@ import com.google.firebase.auth.UserRecord;
 import java.util.HashMap;
 import java.util.Map;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.usuarios.demo.exceptions.CentroMedicoException;
 
 @Service
 public class CentroMedicoService {
+    private static final Logger logger = LoggerFactory.getLogger(CentroMedicoService.class);
+
     @Autowired
     private CentroMedicoRepository repository;
 
@@ -43,7 +48,7 @@ public class CentroMedicoService {
             centro.setUrlLogo(nuevosDatos.getUrlLogo());
             return repository.save(centro);
         } else {
-            throw new RuntimeException("Centro médico no encontrado con ID: " + id);
+            throw new CentroMedicoException("Centro médico no encontrado con ID: " + id);
         }
     }
 
@@ -55,12 +60,12 @@ public class CentroMedicoService {
     public CentroMedico registrarCentroMedico(CentroMedico centro) {
         // Validar campos obligatorios
         if (centro.getNombre() == null || centro.getCorreo() == null || centro.getTelefono() == null) {
-            throw new RuntimeException("Faltan datos obligatorios");
+            throw new CentroMedicoException("Faltan datos obligatorios");
         }
 
         // Verificar si el correo ya existe
         if (repository.existsByCorreo(centro.getCorreo())) {
-            throw new RuntimeException("Centro ya existe con ese correo");
+            throw new CentroMedicoException("Centro ya existe con ese correo");
         }
 
         // Guardar primero en la base de datos
@@ -68,6 +73,8 @@ public class CentroMedicoService {
 
         try {
             // Crear usuario en Firebase
+            logger.info("FirebaseAuth instance: {}", FirebaseAuth.getInstance());
+            logger.info("Invocando createUser en FirebaseAuth con correo: {}", guardado.getCorreo());
             UserRecord.CreateRequest request = new UserRecord.CreateRequest()
                     .setEmail(guardado.getCorreo())
                     .setPassword("KalaTemporal123") // Contraseña temporal
@@ -82,16 +89,16 @@ public class CentroMedicoService {
 
             FirebaseAuth.getInstance().setCustomUserClaims(userRecord.getUid(), claims);
 
-            System.out.println("✅ Usuario creado y rol asignado correctamente: " + guardado.getCorreo());
+            logger.info("✅ Usuario creado y rol asignado correctamente: {}", guardado.getCorreo());
         } catch (Exception e) {
-            e.printStackTrace();
-            System.err
-                    .println("❌ Error al crear usuario en Firebase. Revirtiendo centro médico en la base de datos...");
+            logger.error("❌ Error al crear usuario en Firebase. Revirtiendo centro médico en la base de datos...");
 
             // Rollback manual: eliminar el centro médico que guardamos si Firebase falla
             repository.deleteById(guardado.getPkId());
 
-            throw new RuntimeException("Error al registrar centro médico: " + e.getMessage());
+            String errorMessage = "Error al registrar centro médico: " + (e.getMessage() != null ? e.getMessage() : "Error desconocido") +
+                                  "\nDetalles: " + e.toString();
+            throw new CentroMedicoException(errorMessage, e);
         }
 
         return guardado;
@@ -104,14 +111,13 @@ public class CentroMedicoService {
             Optional<CentroMedico> centro = repository.findByCorreo(correo);
             if (centro.isPresent()) {
                 repository.delete(centro.get());
-                System.out.println("✅ Centro médico eliminado correctamente: " + correo);
+                logger.info("✅ Centro médico eliminado correctamente: {}", correo);
             } else {
-                System.out.println("⚠️ No se encontró centro médico con el correo: " + correo);
+                logger.warn("⚠️ No se encontró centro médico con el correo: {}", correo);
             }
         } catch (Exception e) {
-            System.err.println("❌ Error al eliminar centro médico: " + e.getMessage());
-            e.printStackTrace();
-            throw new RuntimeException("Error al eliminar centro médico con correo: " + correo, e);
+            logger.error("❌ Error al eliminar centro médico: {}", e.getMessage(), e);
+            throw new CentroMedicoException("Error al eliminar centro médico con correo: " + correo, e);
         }
     }
 }

@@ -1,7 +1,6 @@
 package com.usuarios.demo.controllers;
 
 import com.usuarios.demo.entities.Admin;
-import com.usuarios.demo.entities.Medico;
 import com.usuarios.demo.services.AdminService;
 import com.usuarios.demo.services.CentroMedicoService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,12 +8,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.usuarios.demo.services.MedicoService;
 import com.usuarios.demo.services.PacienteService;
-import com.usuarios.demo.repositories.MedicoRepository;
-
 
 import com.google.firebase.auth.ExportedUserRecord;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.ListUsersPage;
 import com.google.firebase.auth.UserRecord;
 
@@ -22,7 +18,6 @@ import java.util.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import org.springframework.http.HttpStatus;
 
 import com.usuarios.demo.utils.CorregirCustomClaims;
 
@@ -50,7 +45,7 @@ public class AdminController {
     }
 
     @GetMapping("/usuarios-firebase")
-public ResponseEntity<Map<String, Object>> obtenerUsuariosFirebaseAgrupados() {
+    public ResponseEntity<Map<String, Object>> obtenerUsuariosFirebaseAgrupados() {
     try {
         System.out.println("\n🔄 Iniciando obtención de usuarios de Firebase...");
 
@@ -133,7 +128,7 @@ public ResponseEntity<Map<String, Object>> obtenerUsuariosFirebaseAgrupados() {
     @ApiResponse(responseCode = "200", description = "Usuario eliminado correctamente")
     @ApiResponse(responseCode = "500", description = "Error al eliminar el usuario")
     @DeleteMapping("/usuarios-firebase/{uid}")
-public ResponseEntity<String> eliminarUsuario(@PathVariable String uid) {
+    public ResponseEntity<String> eliminarUsuario(@PathVariable String uid) {
     try {
         UserRecord user = FirebaseAuth.getInstance().getUser(uid);
         String correo = user.getEmail();
@@ -195,8 +190,7 @@ public ResponseEntity<String> eliminarUsuario(@PathVariable String uid) {
             return ResponseEntity.status(500).body("Error al reactivar usuario");
         }
     }
-    @Autowired
-    private MedicoRepository repository;
+   
     @GetMapping("/usuarios-firebase/{uid}/rol")
     public ResponseEntity<Map<String, Object>> obtenerRolUsuario(@PathVariable String uid) {
         try {
@@ -247,34 +241,13 @@ public ResponseEntity<String> eliminarUsuario(@PathVariable String uid) {
             return ResponseEntity.status(500).body(errorResponse);
         }
     }
-public void eliminarPorCorreo(String correo) {
-    Optional<Medico> medicoOpt = repository.findByCorreo(correo);
-
-    if (medicoOpt.isEmpty()) {
-        System.out.println("⚠️ No se encontró médico con correo: " + correo);
-        return;
+   
+    // Updated to delegate deletion logic to MedicoService
+    @DeleteMapping("/medico-por-correo")
+    public ResponseEntity<String> eliminarPorCorreo(@RequestParam String correo) {
+        medicoService.eliminarPorCorreo(correo);
+        return ResponseEntity.ok("Eliminado");
     }
-
-    Medico medico = medicoOpt.get();
-
-    // 1. Intentar eliminar en Firebase Authentication
-    try {
-        UserRecord userRecord = FirebaseAuth.getInstance().getUserByEmail(correo);
-        FirebaseAuth.getInstance().deleteUser(userRecord.getUid());
-        System.out.println("✅ Usuario de Firebase eliminado: " + correo);
-    } catch (FirebaseAuthException e) {
-        if ("USER_NOT_FOUND".equals(e.getAuthErrorCode().name())) {
-            System.out.println("⚠️ Usuario ya no existe en Firebase. Continuando con la eliminación local...");
-        } else {
-            System.err.println("❌ Error al eliminar usuario en Firebase: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    // 2. Eliminar en base de datos
-    repository.delete(medico);
-    System.out.println("✅ Médico eliminado de la base de datos con correo: " + correo);
-}
 
 
     @GetMapping("/corregir-claims")
@@ -287,4 +260,5 @@ public void eliminarPorCorreo(String correo) {
             return ResponseEntity.status(500).body("❌ Error al corregir claims: " + e.getMessage());
         }
     }
+
 }

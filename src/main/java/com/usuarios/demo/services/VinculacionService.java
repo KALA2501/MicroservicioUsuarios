@@ -10,8 +10,13 @@ import java.util.*;
 
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Service
 public class VinculacionService {
+
+    private static final Logger logger = LoggerFactory.getLogger(VinculacionService.class);
 
     @Autowired
     private VinculacionRepository vinculacionRepository;
@@ -86,8 +91,8 @@ public class VinculacionService {
 
         vinculacion.setTipoVinculacion(nuevoTipo);
 
-        System.out.println("🔔 Notificación enviada al médico: " + vinculacion.getMedico().getNombre());
-        System.out.println("🔔 Notificación enviada al paciente: " + vinculacion.getPaciente().getNombre());
+        logger.info("🔔 Notificación enviada al médico: " + vinculacion.getMedico().getNombre());
+        logger.info("🔔 Notificación enviada al paciente: " + vinculacion.getPaciente().getNombre());
 
         return vinculacionRepository.save(vinculacion);
     }

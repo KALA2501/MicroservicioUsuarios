@@ -2,29 +2,42 @@ package com.usuarios.demo.services;
 
 import com.usuarios.demo.entities.*;
 import com.usuarios.demo.repositories.*;
+import com.usuarios.demo.exceptions.CentroMedicoException;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.UserRecord;
-import com.google.firebase.auth.UserRecord.CreateRequest;
 import com.google.firebase.auth.FirebaseAuthException;
+import com.google.firebase.auth.UserRecord.CreateRequest;
+
+import com.google.firebase.auth.UserRecord;
 
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class SolicitudCentroMedicoService {
 
-    @Autowired
-    private SolicitudCentroMedicoRepository repository;
+    private static final Logger logger = LoggerFactory.getLogger(SolicitudCentroMedicoService.class);
 
-    @Autowired
-    private CentroMedicoRepository centroMedicoRepository;
+    private final SolicitudCentroMedicoRepository repository;
+    private final CentroMedicoRepository centroMedicoRepository;
+    private final FirebaseAuth firebaseAuth;
+
+    public SolicitudCentroMedicoService(SolicitudCentroMedicoRepository repository, CentroMedicoRepository centroMedicoRepository, FirebaseAuth firebaseAuth) {
+        this.repository = repository;
+        this.centroMedicoRepository = centroMedicoRepository;
+        this.firebaseAuth = firebaseAuth;
+    }
 
     public SolicitudCentroMedico guardarSolicitud(SolicitudCentroMedico solicitud) {
+        if (solicitud.getCorreo() == null || solicitud.getTelefono() == null) {
+            throw new IllegalArgumentException("Correo y teléfono no pueden ser nulos");
+        }
+
         if (repository.existsByCorreo(solicitud.getCorreo())) {
             throw new RuntimeException("Ya existe una solicitud con ese correo");
         }
@@ -54,66 +67,48 @@ public class SolicitudCentroMedicoService {
         repository.save(solicitud);
 
         try {
-            UserRecord existingUser = FirebaseAuth.getInstance().getUserByEmail(solicitud.getCorreo());
-            Map<String, Object> claims = new HashMap<>();
-            claims.put("rol", rol);
-            FirebaseAuth.getInstance().setCustomUserClaims(existingUser.getUid(), claims);
-            System.out.println("✅ Usuario existente actualizado con rol: " + rol);
-        } catch (com.google.firebase.auth.FirebaseAuthException e) {
-            String errorCode = e.getAuthErrorCode().name();
-            System.out.println("Código de error Firebase: " + errorCode);
-
-            if (errorCode.equals("USER_NOT_FOUND")) {
+            firebaseAuth.getUserByEmail(solicitud.getCorreo());
+            logger.info("✅ Usuario ya existía en Firebase");
+        } catch (FirebaseAuthException e) {
+            if (e.getAuthErrorCode().name().equals("USER_NOT_FOUND")) {
                 try {
-                    UserRecord.CreateRequest request = new UserRecord.CreateRequest()
+                    CreateRequest request = new CreateRequest()
                             .setEmail(solicitud.getCorreo())
                             .setPassword("KalaTemporal123")
                             .setEmailVerified(false)
                             .setDisabled(false);
 
-                    UserRecord nuevoUsuario = FirebaseAuth.getInstance().createUser(request);
-
-                    Map<String, Object> claims = new HashMap<>();
-                    claims.put("rol", rol);
-                    FirebaseAuth.getInstance().setCustomUserClaims(nuevoUsuario.getUid(), claims);
-
-                    System.out.println("✅ Nuevo usuario creado con rol: " + rol);
-                } catch (com.google.firebase.auth.FirebaseAuthException ex) {
-                    String createErrorCode = ex.getAuthErrorCode().name();
-                    System.out.println("Error al crear usuario: " + createErrorCode);
-
-                    if (createErrorCode.equals("EMAIL_EXISTS")) {
+                    firebaseAuth.createUser(request);
+                    logger.info("✅ Usuario creado en Firebase");
+                } catch (FirebaseAuthException ex) {
+                    if (ex.getAuthErrorCode().name().equals("EMAIL_EXISTS")) {
                         try {
-                            UserRecord user = FirebaseAuth.getInstance().getUserByEmail(solicitud.getCorreo());
-                            Map<String, Object> claims = new HashMap<>();
-                            claims.put("rol", rol);
-                            FirebaseAuth.getInstance().setCustomUserClaims(user.getUid(), claims);
-                            System.out.println("✅ Usuario existente actualizado con rol: " + rol);
-                        } catch (com.google.firebase.auth.FirebaseAuthException finalEx) {
-                            throw new RuntimeException(
-                                    "No se pudo actualizar el usuario existente: " + finalEx.getMessage());
+                            firebaseAuth.getUserByEmail(solicitud.getCorreo());
+                            logger.warn("⚠️ Usuario ya existía, obtenido después de EMAIL_EXISTS");
+                        } catch (FirebaseAuthException finalEx) {
+                            throw new CentroMedicoException("No se pudo obtener el usuario tras EMAIL_EXISTS: " + finalEx.getMessage());
                         }
                     } else {
-                        throw new RuntimeException("No se pudo crear el usuario en Firebase: " + ex.getMessage());
+                        throw new CentroMedicoException("No se pudo crear el usuario: " + ex.getMessage());
                     }
                 }
-            } else if (errorCode.equals("EMAIL_EXISTS")) {
-                try {
-                    UserRecord user = FirebaseAuth.getInstance().getUserByEmail(solicitud.getCorreo());
-                    Map<String, Object> claims = new HashMap<>();
-                    claims.put("rol", rol);
-                    FirebaseAuth.getInstance().setCustomUserClaims(user.getUid(), claims);
-                    System.out.println("✅ Usuario existente actualizado con rol: " + rol);
-                } catch (com.google.firebase.auth.FirebaseAuthException finalEx) {
-                    throw new RuntimeException("No se pudo actualizar el usuario existente: " + finalEx.getMessage());
-                }
             } else {
-                e.printStackTrace();
-                throw new RuntimeException("No se pudo procesar el usuario en Firebase: " + e.getMessage());
+                throw new CentroMedicoException("Error al obtener usuario: " + e.getMessage());
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Error inesperado al procesar usuario: " + e.getMessage());
+        }
+
+        try {
+            Map<String, Object> claims = new HashMap<>();
+            claims.put("rol", rol);
+            String uid = firebaseAuth.getUserByEmail(solicitud.getCorreo()) != null
+                    ? firebaseAuth.getUserByEmail(solicitud.getCorreo()).getUid()
+                    : null;
+            if (uid != null) {
+                firebaseAuth.setCustomUserClaims(uid, claims);
+                logger.info("✅ Rol asignado en Firebase: {}", rol);
+            }
+        } catch (Exception ex) {
+            throw new CentroMedicoException("No se pudo asignar el rol en Firebase: " + ex.getMessage(), ex);
         }
 
         if (rol.equalsIgnoreCase("CENTRO_MEDICO")) {
@@ -123,9 +118,8 @@ public class SolicitudCentroMedicoService {
             nuevo.setDireccion(solicitud.getDireccion());
             nuevo.setTelefono(solicitud.getTelefono());
             nuevo.setUrlLogo(solicitud.getUrlLogo());
-
             centroMedicoRepository.save(nuevo);
-            System.out.println("✅ Centro médico guardado en BD: " + nuevo.getCorreo());
+            logger.info("✅ Centro médico guardado: " + nuevo.getCorreo());
         }
     }
 
@@ -134,51 +128,49 @@ public class SolicitudCentroMedicoService {
         SolicitudCentroMedico solicitud = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Solicitud no encontrada"));
 
-        System.out.println("🔄 Iniciando proceso de reversión para: " + solicitud.getCorreo());
+        logger.info("🔄 Iniciando proceso de reversión para: " + solicitud.getCorreo());
 
-        // 1. Verificar si existe en centro_medico
         boolean existeEnBaseDatos = centroMedicoRepository.existsByCorreo(solicitud.getCorreo());
-        System.out.println(existeEnBaseDatos ? "✅ Existe en base de datos" : "⚠️ No existe en base de datos");
+        logger.info(existeEnBaseDatos ? "✅ Existe en base de datos" : "⚠️ No existe en base de datos");
 
-        // 2. Verificar si existe en Firebase
         boolean existeEnFirebase = false;
         try {
-            UserRecord user = FirebaseAuth.getInstance().getUserByEmail(solicitud.getCorreo());
+            logger.info("Invocando getUserByEmail con correo: " + solicitud.getCorreo());
+            firebaseAuth.getUserByEmail(solicitud.getCorreo());
             existeEnFirebase = true;
-            System.out.println("✅ Existe en Firebase");
+            logger.info("✅ Existe en Firebase");
         } catch (FirebaseAuthException e) {
-            System.out.println("⚠️ No existe en Firebase");
+            logger.info("⚠️ No existe en Firebase");
         }
 
-        // 3. Realizar las acciones necesarias
-        if (existeEnBaseDatos || existeEnFirebase) {
-            // Si existe en algún lado, procedemos a eliminar
-            try {
-                if (existeEnBaseDatos) {
-                    centroMedicoRepository.deleteByCorreo(solicitud.getCorreo());
-                    System.out.println("✅ Eliminado de la base de datos");
-                }
-
-                if (existeEnFirebase) {
-                    UserRecord user = FirebaseAuth.getInstance().getUserByEmail(solicitud.getCorreo());
-                    FirebaseAuth.getInstance().deleteUser(user.getUid());
-                    System.out.println("✅ Eliminado de Firebase");
-                }
-
-                // Marcar como no procesado
-                solicitud.setProcesado(false);
-                repository.save(solicitud);
-                System.out.println("✅ Solicitud marcada como no procesada");
-
-            } catch (Exception e) {
-                System.err.println("❌ Error durante la reversión: " + e.getMessage());
-                throw new RuntimeException("Error durante la reversión: " + e.getMessage());
+        try {
+            if (existeEnBaseDatos) {
+                centroMedicoRepository.deleteByCorreo(solicitud.getCorreo());
+                logger.info("✅ Eliminado de la base de datos");
             }
-        } else {
-            // Si no existe en ningún lado, solo actualizamos el estado
+            if (existeEnFirebase) {
+                eliminarDeFirebase(solicitud.getCorreo());
+            }
+
             solicitud.setProcesado(false);
             repository.save(solicitud);
-            System.out.println("✅ Solicitud marcada como no procesada (no existía en ninguna base de datos)");
+            logger.info("✅ Solicitud marcada como no procesada");
+
+        } catch (Exception e) {
+            logger.error("❌ Error durante la reversión: {}", e.getMessage());
+            throw new CentroMedicoException("Error durante la reversión: " + e.getMessage(), e);
+        }
+    }
+
+    private void eliminarDeFirebase(String correo) {
+        try {
+            UserRecord user = firebaseAuth.getUserByEmail(correo);
+            if (user != null) {
+                firebaseAuth.deleteUser(user.getUid());
+                logger.info("✅ Eliminado de Firebase");
+            }
+        } catch (FirebaseAuthException ex) {
+            logger.warn("⚠️ Error al intentar eliminar de Firebase: {}", ex.getMessage());
         }
     }
 
