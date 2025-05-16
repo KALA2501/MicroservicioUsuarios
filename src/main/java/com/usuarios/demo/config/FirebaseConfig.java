@@ -3,8 +3,12 @@ package com.usuarios.demo.config;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
+import com.google.firebase.auth.FirebaseAuth;
+
 import io.github.cdimascio.dotenv.Dotenv;
 import jakarta.annotation.PostConstruct;
+
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.io.ByteArrayInputStream;
@@ -79,5 +83,10 @@ public class FirebaseConfig {
             System.err.println("❌ Error initializing Firebase: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    @Bean
+    public FirebaseAuth firebaseAuth() {
+        return FirebaseAuth.getInstance();
     }
 }
