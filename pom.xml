@@ -145,6 +145,8 @@
             <optional>true</optional>
         </dependency>
 
+        
+
         <!-- Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -292,6 +294,11 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.apache.maven</groupId>
             <artifactId>maven-compat</artifactId>
             <version>${mavenVersion}</version>
@@ -365,6 +372,19 @@
                         <goals>
                             <goal>report</goal>
                         </goals>
+                    </execution>
+                    <execution>
+                        <id>report-xml</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/jacoco-report</outputDirectory>
+                            <xml>true</xml>
+                            <csv>false</csv>
+                            <html>false</html>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>

@@ -12,7 +12,10 @@ import org.mockito.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
+import java.util.Optional;
 
 class CentroMedicoServiceTest {
 
@@ -127,5 +130,105 @@ class CentroMedicoServiceTest {
         );
 
         assertEquals("Faltan datos obligatorios", ex.getMessage());
+    }
+
+    @Test
+    void testRegistrarCentroMedico_ValidData() throws Exception {
+        CentroMedico centro = crearCentro("Centro Saludable", "salud@salud.com", "987654321");
+
+        when(centroMedicoRepository.existsByCorreo(centro.getCorreo())).thenReturn(false);
+        when(centroMedicoRepository.save(any())).thenAnswer(invocation -> {
+            CentroMedico saved = invocation.getArgument(0);
+            saved.setPkId(101L); // Simulate ID generation
+            return saved;
+        });
+
+        when(firebaseAuth.createUser(any(UserRecord.CreateRequest.class))).thenReturn(userRecord);
+        doNothing().when(firebaseAuth).setCustomUserClaims(any(), any());
+
+        CentroMedico result = centroMedicoService.registrarCentroMedico(centro);
+
+        assertNotNull(result);
+        assertEquals("Centro Saludable", result.getNombre());
+        verify(centroMedicoRepository, times(1)).save(any());
+        verify(firebaseAuth, times(1)).createUser(any());
+        verify(firebaseAuth, times(1)).setCustomUserClaims(any(), any());
+    }
+
+    @Test
+    void testActualizarCentroMedico_Exitoso() throws Exception {
+        CentroMedico centroExistente = crearCentro("Clínica Existen", "existen@salud.com", "456789123");
+        centroExistente.setPkId(1L);
+
+        CentroMedico nuevosDatos = crearCentro("Clínica Actualizada", "existen@salud.com", "123456789");
+
+        when(centroMedicoRepository.findById(centroExistente.getPkId())).thenReturn(Optional.of(centroExistente));
+        when(centroMedicoRepository.save(any())).thenReturn(centroExistente);
+
+        CentroMedico resultado = centroMedicoService.actualizar(centroExistente.getPkId(), nuevosDatos);
+
+        assertNotNull(resultado);
+        assertEquals("Clínica Actualizada", resultado.getNombre());
+        verify(centroMedicoRepository, times(1)).save(any());
+    }
+
+    @Test
+    void testActualizarCentroMedico_NoEncontrado() {
+        CentroMedico nuevosDatos = crearCentro("Clínica Nueva", "nuevo@salud.com", "123456789");
+
+        when(centroMedicoRepository.findById(anyLong())).thenReturn(Optional.empty());
+
+        CentroMedicoException ex = assertThrows(CentroMedicoException.class,
+            () -> centroMedicoService.actualizar(1L, nuevosDatos)
+        );
+
+        assertEquals("Centro médico no encontrado con ID: 1", ex.getMessage());
+        verify(centroMedicoRepository, times(1)).findById(anyLong());
+    }
+
+    @Test
+    void testRegistrarCentroMedico_FirebaseFailsAfterCreation() throws Exception {
+        CentroMedico centro = crearCentro("Clínica Fallida", "fallido@salud.com", "321654987");
+
+        when(centroMedicoRepository.existsByCorreo(centro.getCorreo())).thenReturn(false);
+        when(centroMedicoRepository.save(any())).thenAnswer(invocation -> {
+            CentroMedico saved = invocation.getArgument(0);
+            saved.setPkId(102L);
+            return saved;
+        });
+
+        // Simulate a Firebase failure after the user is created
+        when(firebaseAuth.createUser(any())).thenReturn(userRecord);
+        doThrow(new RuntimeException("Simulated Firebase failure during claim assignment"))
+            .when(firebaseAuth).setCustomUserClaims(any(), any());
+
+        CentroMedicoException ex = assertThrows(
+            CentroMedicoException.class,
+            () -> centroMedicoService.registrarCentroMedico(centro)
+        );
+
+        assertTrue(ex.getMessage().contains("Error al registrar centro médico"));
+        verify(centroMedicoRepository, times(1)).deleteById(102L);
+    }
+
+    @Test
+    void testEliminarCentroMedico_Exitoso() throws Exception {
+        CentroMedico centro = crearCentro("Centro a Eliminar", "eliminar@salud.com", "654321789");
+        centro.setPkId(1L);
+
+        when(centroMedicoRepository.findByCorreo(centro.getCorreo())).thenReturn(Optional.of(centro));
+
+        centroMedicoService.eliminarPorCorreo(centro.getCorreo());
+
+        verify(centroMedicoRepository, times(1)).delete(centro);
+    }
+
+    @Test
+    void testEliminarCentroMedico_NoEncontrado() {
+        when(centroMedicoRepository.findByCorreo(anyString())).thenReturn(Optional.empty());
+
+        centroMedicoService.eliminarPorCorreo("noexistente@salud.com");
+
+        verify(centroMedicoRepository, times(0)).delete(any());
     }
 }
