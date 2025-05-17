@@ -120,5 +120,6 @@ public class CentroMedicoService {
             throw new CentroMedicoException("Error al eliminar centro médico con correo: " + correo, e);
         }
     }
+
 }
 

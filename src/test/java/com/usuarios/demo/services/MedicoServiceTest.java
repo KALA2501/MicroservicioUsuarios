@@ -1,6 +1,8 @@
 package com.usuarios.demo.services;
 
+import com.google.firebase.auth.AuthErrorCode;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.UserRecord;
 import com.usuarios.demo.entities.*;
 import com.usuarios.demo.repositories.*;
@@ -10,7 +12,10 @@ import org.mockito.*;
 
 import java.util.*;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 class MedicoServiceTest {
@@ -114,4 +119,54 @@ class MedicoServiceTest {
         verify(firebaseAuth, never()).deleteUser(any());
         verify(medicoRepository, never()).delete(any());
     }
+
+    @Test
+    void testGuardar_CentroNoEncontrado() {
+        Medico medico = new Medico();
+        medico.setPkId("id");
+        CentroMedico centro = new CentroMedico();
+        centro.setPkId(1L);
+        medico.setCentroMedico(centro);
+
+        when(centroMedicoRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThrows(RuntimeException.class, () -> service.guardar(medico));
+    }
+
+    @Test
+    void testEliminarPorCorreo_UsuarioNoEncontradoEnFirebase() throws Exception {
+        // Arrange
+        Medico medico = new Medico();
+        medico.setCorreo("desconocido@medico.com");
+
+        when(medicoRepository.findByCorreo("desconocido@medico.com")).thenReturn(Optional.of(medico));
+
+        // 🔧 Mock de FirebaseAuthException
+        FirebaseAuthException ex = mock(FirebaseAuthException.class);
+        AuthErrorCode errorCode = mock(AuthErrorCode.class);
+
+        when(errorCode.name()).thenReturn("USER_NOT_FOUND");
+        when(ex.getAuthErrorCode()).thenReturn(errorCode);
+
+        // Simula que Firebase lanza esa excepción
+        when(firebaseAuth.getUserByEmail("desconocido@medico.com")).thenThrow(ex);
+
+        // Act
+        service.eliminarPorCorreo("desconocido@medico.com");
+
+        // Assert
+        verify(medicoRepository).delete(medico);
+    }
+
+    @Test
+    void testFiltrarMedicos_TodosNulos() {
+        List<Medico> lista = List.of(new Medico());
+        when(medicoRepository.findAll()).thenReturn(lista);
+
+        List<Medico> resultado = service.filtrarMedicos(null, null, null);
+
+        assertThat(resultado).hasSize(1);
+    }
+
+
 }

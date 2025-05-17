@@ -4,13 +4,13 @@ import com.usuarios.demo.entities.SolicitudCentroMedico;
 import com.usuarios.demo.services.SolicitudCentroMedicoService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import java.util.Collections;
+import org.springframework.boot.test.mock.mockito.MockBean;
+
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -24,11 +24,8 @@ public class SolicitudCentroMedicoControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @Mock
+    @MockBean
     private SolicitudCentroMedicoService solicitudCentroMedicoService;
-
-    @InjectMocks
-    private SolicitudCentroMedicoController solicitudCentroMedicoController;
 
     private SolicitudCentroMedico solicitud;
 
@@ -54,7 +51,7 @@ public class SolicitudCentroMedicoControllerTest {
         // Perform POST request to simulate conflict
         mockMvc.perform(post("/api/solicitudes-centro-medico")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"correo\": \"test@kala.com\", \"telefono\": \"1234567890\", \"nombre\": \"Centro Test\", \"estado_solicitud\": \"PENDIENTE\", \"procesado\": false, \"direccion\": \"Dirección Test\", \"url_logo\": \"http://testlogo.com\"}"))
+                        .content("{\"correo\": \"test@kala.com\", \"telefono\": \"1234567890\", \"nombre\": \"Centro Test\", \"estadoSolicitud\": \"PENDIENTE\", \"procesado\": false, \"direccion\": \"Dirección Test\", \"urlLogo\": \"http://testlogo.com\"}"))
                 .andExpect(status().isConflict())
                 .andExpect(content().string("Ya existe una solicitud con ese correo"));
     }

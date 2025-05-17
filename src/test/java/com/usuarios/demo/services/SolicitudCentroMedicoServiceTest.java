@@ -14,7 +14,6 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -292,5 +291,26 @@ class SolicitudCentroMedicoServiceTest {
 
         verify(solicitudRepository).deleteById(1L);
     }
+
+    @Test
+    void testObtenerSolicitudes() {
+        List<SolicitudCentroMedico> solicitudes = List.of(new SolicitudCentroMedico(), new SolicitudCentroMedico());
+        when(solicitudRepository.findAll()).thenReturn(solicitudes);
+
+        List<SolicitudCentroMedico> result = solicitudService.obtenerSolicitudes();
+
+        assertEquals(2, result.size());
+        verify(solicitudRepository).findAll();
+    }
+
+    @Test
+    void testEliminarPorId_InvalidId() {
+        when(solicitudRepository.existsById(99L)).thenReturn(false);
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> solicitudService.eliminarPorId(99L));
+        assertEquals("Solicitud no encontrada", ex.getMessage());
+    }
+
+
 
 } 

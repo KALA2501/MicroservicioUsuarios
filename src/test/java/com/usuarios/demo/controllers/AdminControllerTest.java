@@ -4,7 +4,6 @@ import com.google.firebase.auth.*;
 import com.usuarios.demo.config.FirebaseMockConfig;
 import com.usuarios.demo.config.SecurityConfig;
 import com.usuarios.demo.config.TestSecurityConfig;
-import com.usuarios.demo.controllers.AdminController;
 import com.usuarios.demo.entities.Admin;
 import com.usuarios.demo.services.AdminService;
 import com.usuarios.demo.services.CentroMedicoService;

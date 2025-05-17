@@ -8,6 +8,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.mockito.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -17,6 +19,10 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import java.util.Optional;
 
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+@ExtendWith(MockitoExtension.class)
 class CentroMedicoServiceTest {
 
     private static MockedStatic<FirebaseAuth> firebaseAuthStatic;
@@ -231,4 +237,59 @@ class CentroMedicoServiceTest {
 
         verify(centroMedicoRepository, times(0)).delete(any());
     }
+
+    @Test
+    void testRegistrarCentroMedico_FaltanCampos() {
+        CentroMedico centro = new CentroMedico();
+        centro.setCorreo(null); // nombre o teléfono también puede ser null
+
+        CentroMedicoException ex = assertThrows(CentroMedicoException.class, () -> {
+            centroMedicoService.registrarCentroMedico(centro);
+        });
+
+        assertThat(ex.getMessage()).contains("Faltan datos obligatorios");
+    }
+
+
+    @Test
+    void testRegistrarCentroMedico_CorreoExistente() {
+        CentroMedico existente = new CentroMedico(1L, "Centro Existente", "correo@falso", "3001234567", "Calle Falsa", "http://logo.com");
+
+        when(centroMedicoRepository.existsByCorreo(anyString())).thenReturn(true);
+
+
+        CentroMedicoException ex = assertThrows(CentroMedicoException.class, () -> {
+            centroMedicoService.registrarCentroMedico(existente);
+        });
+
+        assertThat(ex.getMessage()).contains("Centro ya existe con ese correo");
+    }
+
+
+    @Test
+    void testEliminarPorCorreo_NoExiste() {
+        when(centroMedicoRepository.findByCorreo("noexiste@mail.com")).thenReturn(Optional.empty());
+
+        centroMedicoService.eliminarPorCorreo("noexiste@mail.com");
+
+        // No lanza excepción, solo logger.warn, por eso no hace falta assertThrows
+        verify(centroMedicoRepository, never()).delete(any());
+    }
+
+    @Test
+    void testEliminarPorCorreo_ErrorEnDelete() {
+        CentroMedico centro = new CentroMedico();
+        centro.setCorreo("error@mail.com");
+
+        when(centroMedicoRepository.findByCorreo("error@mail.com")).thenReturn(Optional.of(centro));
+        doThrow(new RuntimeException("Error en delete")).when(centroMedicoRepository).delete(any());
+
+        CentroMedicoException ex = assertThrows(CentroMedicoException.class, () -> {
+            centroMedicoService.eliminarPorCorreo("error@mail.com");
+        });
+
+        assertThat(ex.getMessage()).contains("Error al eliminar centro médico con correo");
+    }
+
+    
 }

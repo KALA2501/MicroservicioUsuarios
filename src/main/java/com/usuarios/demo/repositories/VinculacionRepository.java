@@ -8,7 +8,6 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
-import javax.transaction.Transactional;
 
 @Repository
 public interface VinculacionRepository extends JpaRepository<Vinculacion, VinculacionId> {

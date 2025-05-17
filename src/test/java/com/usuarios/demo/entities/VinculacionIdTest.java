@@ -67,4 +67,15 @@ class VinculacionIdTest {
         assertEquals("paciente1", vinculacionId1.getPaciente());
         assertEquals("medico1", vinculacionId1.getMedico());
     }
+
+    @Test
+    void testSetters() {
+        VinculacionId id = new VinculacionId();
+        id.setPaciente("nuevoPaciente");
+        id.setMedico("nuevoMedico");
+
+        assertEquals("nuevoPaciente", id.getPaciente());
+        assertEquals("nuevoMedico", id.getMedico());
+    }
+
 }

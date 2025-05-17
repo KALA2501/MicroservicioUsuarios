@@ -211,54 +211,123 @@ public class PacienteControllerTest {
                 .andExpect(jsonPath("$[0].pkId").value("pac123"));
     }
 
-@Test
-void testRegistrarPacienteCompleto() throws Exception {
-    String uniqueEmail = "paciente." + System.currentTimeMillis() + "@correo.com";
+        @Test
+        void testRegistrarPacienteCompleto() throws Exception {
+        String uniqueEmail = "paciente." + System.currentTimeMillis() + "@correo.com";
 
-    Map<String, Object> requestJson = new HashMap<>();
-    requestJson.put("nombre", "Ana");
-    requestJson.put("apellido", "Ramírez");
-    requestJson.put("idDocumento", "987654321");
-    requestJson.put("telefono", "3001234567");
-    requestJson.put("email", uniqueEmail);
-    requestJson.put("direccion", "Cra 50 #20-30");
-    requestJson.put("genero", "femenino");
-    requestJson.put("urlImagen", "https://image.png");
-    requestJson.put("etapa", 2);
-    requestJson.put("codigoCIE", 200);
-    requestJson.put("fechaNacimiento", "1995-05-20");
+        Map<String, Object> requestJson = new HashMap<>();
+        requestJson.put("nombre", "Ana");
+        requestJson.put("apellido", "Ramírez");
+        requestJson.put("idDocumento", "987654321");
+        requestJson.put("telefono", "3001234567");
+        requestJson.put("email", uniqueEmail);
+        requestJson.put("direccion", "Cra 50 #20-30");
+        requestJson.put("genero", "femenino");
+        requestJson.put("urlImagen", "https://image.png");
+        requestJson.put("etapa", 2);
+        requestJson.put("codigoCIE", 200);
+        requestJson.put("fechaNacimiento", "1995-05-20");
 
-    // Related entities
-    requestJson.put("tipoDocumento", Map.of("id", "CC"));
-    requestJson.put("centroMedico", Map.of("pkId", 1L));
-    requestJson.put("contactoEmergencia", Map.of("pkId", 1L, "telefono", "3110000000"));
-    requestJson.put("medico", Map.of("pkId", "med123"));
-    requestJson.put("tipoVinculacion", Map.of("id", "VINC1"));
+        // Related entities
+        requestJson.put("tipoDocumento", Map.of("id", "CC"));
+        requestJson.put("centroMedico", Map.of("pkId", 1L));
+        requestJson.put("contactoEmergencia", Map.of("pkId", 1L, "telefono", "3110000000"));
+        requestJson.put("medico", Map.of("pkId", "med123"));
+        requestJson.put("tipoVinculacion", Map.of("id", "VINC1"));
 
-    // Mocks for validation and saving
-    when(pacienteService.buscarPorCorreo(uniqueEmail)).thenThrow(new RuntimeException("not found"));
-    when(contactoEmergenciaRepository.findById(1L)).thenReturn(Optional.of(new ContactoEmergencia()));
-    when(medicoRepository.findById("med123")).thenReturn(Optional.of(new Medico()));
-    when(tipoVinculacionRepository.findById("VINC1")).thenReturn(Optional.of(new TipoVinculacion()));
-    when(centroMedicoRepository.findById(1L)).thenReturn(Optional.of(new CentroMedico()));
-    when(tipoDocumentoRepository.findById("CC")).thenReturn(Optional.of(new TipoDocumento()));
+        // Mocks for validation and saving
+        when(pacienteService.buscarPorCorreo(uniqueEmail)).thenThrow(new RuntimeException("not found"));
+        when(contactoEmergenciaRepository.findById(1L)).thenReturn(Optional.of(new ContactoEmergencia()));
+        when(medicoRepository.findById("med123")).thenReturn(Optional.of(new Medico()));
+        when(tipoVinculacionRepository.findById("VINC1")).thenReturn(Optional.of(new TipoVinculacion()));
+        when(centroMedicoRepository.findById(1L)).thenReturn(Optional.of(new CentroMedico()));
+        when(tipoDocumentoRepository.findById("CC")).thenReturn(Optional.of(new TipoDocumento()));
 
-    // Firebase mocks
-    doThrow(new RuntimeException("not found")).when(firebaseAuth).getUserByEmail(anyString());
-    when(firebaseAuth.createUser(any(UserRecord.CreateRequest.class))).thenReturn(userRecord);
-    when(userRecord.getUid()).thenReturn("firebase-mocked-id");
-    doNothing().when(firebaseAuth).setCustomUserClaims(eq("firebase-mocked-id"), anyMap());
+        // Firebase mocks
+        doThrow(new RuntimeException("not found")).when(firebaseAuth).getUserByEmail(anyString());
+        when(firebaseAuth.createUser(any(UserRecord.CreateRequest.class))).thenReturn(userRecord);
+        when(userRecord.getUid()).thenReturn("firebase-mocked-id");
+        doNothing().when(firebaseAuth).setCustomUserClaims(eq("firebase-mocked-id"), anyMap());
 
-    // Final save
-    Paciente savedPaciente = new Paciente();
-    savedPaciente.setPkId("saved-id");
-    when(pacienteService.guardarConValidacion(any(Paciente.class), any(Medico.class), any(TipoVinculacion.class)))
-            .thenReturn(savedPaciente);
+        // Final save
+        Paciente savedPaciente = new Paciente();
+        savedPaciente.setPkId("saved-id");
+        when(pacienteService.guardarConValidacion(any(Paciente.class), any(Medico.class), any(TipoVinculacion.class)))
+                .thenReturn(savedPaciente);
 
-    mockMvc.perform(post("/api/pacientes/registrar-completo")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(new ObjectMapper().writeValueAsString(requestJson)))
-            .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.pkId").value("saved-id"));
-    }
+        mockMvc.perform(post("/api/pacientes/registrar-completo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(requestJson)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.pkId").value("saved-id"));
+        }
+
+         @Test
+        void testObtenerMedicosVinculados_NotFound() throws Exception {
+        when(vinculacionRepository.findByPaciente_PkId("sinMedicos")).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/api/pacientes/sinMedicos/medicos"))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string("El paciente no tiene médicos vinculados."));
+        }
+
+        @Test
+        void testGuardarPaciente_ExistePaciente() throws Exception {
+        Map<String, Object> data = new HashMap<>();
+        data.put("email", "existente@correo.com");
+
+        when(pacienteService.buscarPorCorreo("existente@correo.com")).thenReturn(new Paciente());
+
+        mockMvc.perform(post("/api/pacientes/crear")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(data)))
+                .andExpect(status().isConflict())
+                .andExpect(content().string("Ya existe un paciente con este correo."));
+        }
+
+        @Test
+        void testGuardarPaciente_ExisteContacto() throws Exception {
+        Map<String, Object> data = new HashMap<>();
+        data.put("email", "nuevo@correo.com");
+        data.put("contactoEmergencia", Map.of("telefono", "12345678"));
+
+        when(pacienteService.buscarPorCorreo("nuevo@correo.com")).thenThrow(new RuntimeException("not found"));
+        when(contactoEmergenciaRepository.findByTelefono("12345678")).thenReturn(Optional.of(new ContactoEmergencia()));
+
+        mockMvc.perform(post("/api/pacientes/crear")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(data)))
+                .andExpect(status().isConflict())
+                .andExpect(content().string("Ya existe un contacto de emergencia con este teléfono."));
+        }
+
+        @Test
+        void testRegistrarPacienteCompleto_MedicoNoEncontrado() throws Exception {
+        Map<String, Object> data = new HashMap<>();
+        data.put("email", "paciente@correo.com");
+        data.put("medico", Map.of("pkId", "inexistente"));
+
+        when(pacienteService.buscarPorCorreo("paciente@correo.com")).thenThrow(new RuntimeException("not found"));
+        when(medicoRepository.findById("inexistente")).thenReturn(Optional.empty());
+
+        mockMvc.perform(post("/api/pacientes/registrar-completo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(data)))
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Médico no encontrado")));
+        }
+
+
+        @Test
+        void testObtenerPacientesDelMedico_InternalError() throws Exception {
+        when(jwtService.extractUsername("bad-token")).thenReturn("medico@kala.com");
+        when(pacienteService.obtenerPacientesDelMedico("bad-token")).thenThrow(new RuntimeException("error"));
+
+        mockMvc.perform(get("/api/pacientes/del-medico")
+                        .header("Authorization", "Bearer bad-token"))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Error")));
+        }
+
+
 }

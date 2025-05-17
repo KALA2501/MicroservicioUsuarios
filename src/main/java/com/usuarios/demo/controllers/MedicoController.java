@@ -6,8 +6,6 @@ import com.usuarios.demo.entities.*;
 import com.usuarios.demo.repositories.MedicoRepository;
 import com.usuarios.demo.services.JwtService;
 import com.usuarios.demo.services.MedicoService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +23,8 @@ public class MedicoController {
     private final MedicoService service;
     private final JwtService jwtService;
     private final MedicoRepository medicoRepository;
+    private static final String MEDICO_NO_ENCONTRADO = "Médico no encontrado";
+
 
     public MedicoController(MedicoService service, JwtService jwtService, MedicoRepository medicoRepository) {
         this.service = service;
@@ -41,7 +41,7 @@ public class MedicoController {
     public ResponseEntity<?> obtenerPorId(@PathVariable String id) {
         return service.obtenerPorId(id)
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body("Médico no encontrado"));
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(MEDICO_NO_ENCONTRADO));
     }
 
     @PostMapping
@@ -88,7 +88,7 @@ public class MedicoController {
         try {
             Optional<Medico> medicoOpt = service.obtenerPorId(id);
             if (medicoOpt.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Médico no encontrado");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(MEDICO_NO_ENCONTRADO);
             }
 
             Medico medico = medicoOpt.get();
@@ -112,7 +112,7 @@ public class MedicoController {
     public ResponseEntity<?> actualizar(@PathVariable String id, @RequestBody Medico medicoActualizado) {
         Optional<Medico> existente = service.obtenerPorId(id);
         if (existente.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Médico no encontrado");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(MEDICO_NO_ENCONTRADO);
         }
 
         Optional<CentroMedico> centro = service.obtenerCentroPorId(medicoActualizado.getCentroMedico().getPkId());
@@ -148,7 +148,7 @@ public class MedicoController {
         String email = principal.getName();
         return service.obtenerPorCorreo(email)
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body("Médico no encontrado"));
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(MEDICO_NO_ENCONTRADO));
     }
 
     @GetMapping("/firebase")
@@ -166,7 +166,7 @@ public class MedicoController {
     public ResponseEntity<?> obtenerPorCorreo(@RequestParam String correo) {
         return service.obtenerPorCorreo(correo)
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body("Médico no encontrado"));
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(MEDICO_NO_ENCONTRADO));
     }
 
     @GetMapping("/medico-id")
@@ -174,7 +174,7 @@ public class MedicoController {
         try {
             String correoMedico = jwtService.extractUsername(token.replace("Bearer ", ""));
             Medico medico = medicoRepository.findByCorreo(correoMedico)
-                    .orElseThrow(() -> new RuntimeException("Médico no encontrado"));
+                    .orElseThrow(() -> new RuntimeException(MEDICO_NO_ENCONTRADO));
             return ResponseEntity.ok(medico.getPkId());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
