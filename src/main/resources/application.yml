@@ -1,9 +1,41 @@
+# ------------------------------------------------------------------------------
+# Spring Boot Environment Configuration — Docker and Local Modes
+# ------------------------------------------------------------------------------
+
+# This configuration supports both Docker-based deployments and local development.
+
+# For Docker-based setups:
+# - Replace all 'localhost' references with Docker service names.
+# - Example:
+#     MySQL  → jdbc:mysql://mysql:3306/kala
+#     Kafka  → kafka:8089
+#     Eureka → http://discovery-service:8761/eureka
+
+# Docker Compose automatically enables network communication between containers
+# using the service names defined in 'docker-compose.yml'.
+
+# For local (non-Docker) development:
+# - Services must be running locally on your host machine.
+# - Use these values instead:
+#     MySQL  → jdbc:mysql://localhost:3306/kala
+#     Kafka  → localhost:9092 (or your Kafka port)
+#     Eureka → http://localhost:8761/eureka
+
+# To switch between environments, you can:
+# - Use Spring profiles (e.g., 'docker', 'local'), or
+# - Comment/uncomment the corresponding sections manually
+
+# This block serves as a reference for maintaining proper configurations
+# across environments to ensure reliable connectivity.
+# ------------------------------------------------------------------------------
+
+
 spring:
   application:
     name: usuarios-service
 
   datasource:
-    url: jdbc:mysql://localhost:3306/kala
+    url: jdbc:mysql://mysql:3306/kala
     username: root
     password: admin
 
@@ -16,6 +48,7 @@ spring:
 
   kafka:
     bootstrap-servers: kafka:8089
+
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
@@ -28,8 +61,8 @@ eureka:
     register-with-eureka: true
     fetch-registry: true
     service-url:
-      defaultZone: http://localhost:8761/eureka
+      defaultZone: http://discovery-service:8761/eureka
 
   instance:
-    hostname: host.docker.internal
+    hostname: usuarios-service
     instance-id: usuarios-service:${random.uuid}
