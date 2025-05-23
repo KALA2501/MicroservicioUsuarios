@@ -15,7 +15,7 @@ spring:
     open-in-view: false
 
   kafka:
-    bootstrap-servers: kafka:8089
+    bootstrap-servers: localhost:8089
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
