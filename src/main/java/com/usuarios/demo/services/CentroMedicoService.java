@@ -1,26 +1,29 @@
 package com.usuarios.demo.services;
 
-import com.usuarios.demo.entities.*;
-import com.usuarios.demo.repositories.*;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import java.util.List;
-import java.util.Optional;
+import com.usuarios.demo.entities.CentroMedico;
+import com.usuarios.demo.exceptions.CentroMedicoException;
+import com.usuarios.demo.repositories.CentroMedicoRepository;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.UserRecord;
-import java.util.HashMap;
-import java.util.Map;
-import org.springframework.transaction.annotation.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.usuarios.demo.exceptions.CentroMedicoException;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.*;
 
 @Service
 public class CentroMedicoService {
     private static final Logger logger = LoggerFactory.getLogger(CentroMedicoService.class);
 
-    @Autowired
-    private CentroMedicoRepository repository;
+    private final CentroMedicoRepository repository;
+    private final KafkaTemplate<String, String> kafkaTemplate;
+
+    public CentroMedicoService(CentroMedicoRepository repository, KafkaTemplate<String, String> kafkaTemplate) {
+        this.repository = repository;
+        this.kafkaTemplate = kafkaTemplate;
+    }
 
     public List<CentroMedico> obtenerTodos() {
         return repository.findAll();
@@ -58,46 +61,62 @@ public class CentroMedicoService {
 
     @Transactional
     public CentroMedico registrarCentroMedico(CentroMedico centro) {
-        // Validar campos obligatorios
+        // Validate required fields
         if (centro.getNombre() == null || centro.getCorreo() == null || centro.getTelefono() == null) {
             throw new CentroMedicoException("Faltan datos obligatorios");
         }
 
-        // Verificar si el correo ya existe
+        // Check for duplicate email
         if (repository.existsByCorreo(centro.getCorreo())) {
             throw new CentroMedicoException("Centro ya existe con ese correo");
         }
 
-        // Guardar primero en la base de datos
+        // Save to DB
         CentroMedico guardado = repository.save(centro);
 
         try {
-            // Crear usuario en Firebase
-            logger.info("FirebaseAuth instance: {}", FirebaseAuth.getInstance());
-            logger.info("Invocando createUser en FirebaseAuth con correo: {}", guardado.getCorreo());
+            // Create user in Firebase
+            logger.info("Creating Firebase user for: {}", guardado.getCorreo());
             UserRecord.CreateRequest request = new UserRecord.CreateRequest()
                     .setEmail(guardado.getCorreo())
-                    .setPassword("KalaTemporal123") // Contraseña temporal
+                    .setPassword("KalaTemporal123")
                     .setEmailVerified(false)
                     .setDisabled(false);
 
             UserRecord userRecord = FirebaseAuth.getInstance().createUser(request);
 
-            // Asignar custom claim correctamente ("rol")
+            // Assign custom claims
             Map<String, Object> claims = new HashMap<>();
             claims.put("rol", "centro_medico");
-
             FirebaseAuth.getInstance().setCustomUserClaims(userRecord.getUid(), claims);
 
-            logger.info("✅ Usuario creado y rol asignado correctamente: {}", guardado.getCorreo());
-        } catch (Exception e) {
-            logger.error("❌ Error al crear usuario en Firebase. Revirtiendo centro médico en la base de datos...");
+            logger.info("✅ Firebase user created and role assigned: {}", guardado.getCorreo());
 
-            // Rollback manual: eliminar el centro médico que guardamos si Firebase falla
+            // Build email content
+            String welcomeText = String.format(
+                "Welcome to KALA!\n\nYour login is: %s\nYour temporary password is: KalaTemporal123\n\nPlease change your password after logging in.",
+                guardado.getCorreo()
+            );
+
+            String jsonPayload = String.format(
+                "{\"to\": \"%s\", \"subject\": \"Welcome to KALA 🎉\", \"text\": \"%s\"}",
+                guardado.getCorreo(),
+                welcomeText.replace("\n", "\\n")
+            );
+
+            // Send message to Kafka
+            kafkaTemplate.send("notifications", jsonPayload);
+            logger.info("📬 Sent welcome email to Kafka for: {}", guardado.getCorreo());
+
+        } catch (Exception e) {
+            logger.error("❌ Error creating Firebase user, rolling back DB...");
+
             repository.deleteById(guardado.getPkId());
 
-            String errorMessage = "Error al registrar centro médico: " + (e.getMessage() != null ? e.getMessage() : "Error desconocido") +
-                                  "\nDetalles: " + e.toString();
+            String errorMessage = "Error registering Centro Médico: " +
+                    (e.getMessage() != null ? e.getMessage() : "Unknown error") +
+                    "\nDetails: " + e.toString();
+
             throw new CentroMedicoException(errorMessage, e);
         }
 
@@ -107,7 +126,6 @@ public class CentroMedicoService {
     @Transactional
     public void eliminarPorCorreo(String correo) {
         try {
-            // Buscar el centro médico por correo
             Optional<CentroMedico> centro = repository.findByCorreo(correo);
             if (centro.isPresent()) {
                 repository.delete(centro.get());
@@ -120,6 +138,4 @@ public class CentroMedicoService {
             throw new CentroMedicoException("Error al eliminar centro médico con correo: " + correo, e);
         }
     }
-
 }
-
