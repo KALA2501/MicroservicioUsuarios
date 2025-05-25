@@ -71,6 +71,7 @@ public class SolicitudCentroMedicoService {
     }
 
     public void procesarYCrearUsuario(Long id, String rol) {
+        logger.info("Procesando solicitud con ID: " + id);
         SolicitudCentroMedico solicitud = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Solicitud no encontrada"));
 
