@@ -41,6 +41,24 @@ public class VinculacionService {
         }).collect(Collectors.toList());
     }
 
+    // 🔥 NUEVO MÉTODO: Listar pacientes vinculados a un médico (con estructura más detallada)
+    public List<Map<String, String>> obtenerPacientesDeMedico(String medicoId) {
+    Medico medico = medicoRepository.findById(medicoId)
+        .orElseThrow(() -> new RuntimeException("Médico no encontrado"));
+
+    List<Vinculacion> vinculaciones = vinculacionRepository.findByMedico(medico);
+
+    return vinculaciones.stream().map(v -> {
+        Paciente p = v.getPaciente();
+        Map<String, String> map = new HashMap<>();
+        map.put("nombre", p.getNombre());
+        map.put("apellido", p.getApellido());
+        map.put("documento", p.getIdDocumento());
+        map.put("telefono", p.getTelefono());
+        return map;
+    }).toList();
+}
+
     public Vinculacion crearVinculacion(String pacienteId, String medicoId, String tipoVinculacionId) {
         Paciente paciente = pacienteRepository.findById(pacienteId)
                 .orElseThrow(() -> new RuntimeException("Paciente no encontrado"));
@@ -98,13 +116,10 @@ public class VinculacionService {
     }
 
     public void eliminarVinculacion(String pacienteId, String medicoId) {
-        VinculacionId vinculacionId = new VinculacionId(pacienteId, medicoId); // Crea el VinculacionId usando
-                                                                               // pacienteId y medicoId
-
+        VinculacionId vinculacionId = new VinculacionId(pacienteId, medicoId);
         Vinculacion vinculacion = vinculacionRepository.findById(vinculacionId)
                 .orElseThrow(() -> new RuntimeException("Vinculación no encontrada"));
 
-        // Eliminar la vinculación
         vinculacionRepository.delete(vinculacion);
     }
 
@@ -120,5 +135,4 @@ public class VinculacionService {
             return datos;
         }).collect(Collectors.toList());
     }
-
 }

@@ -3,17 +3,25 @@ package com.usuarios.demo.controllers;
 import com.usuarios.demo.entities.*;
 import com.usuarios.demo.services.*;
 
+import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import com.usuarios.demo.repositories.VinculacionRepository;
+import com.usuarios.demo.repositories.MedicoRepository;
+import com.usuarios.demo.services.VinculacionService;
+
 
 import java.util.List;
 import java.util.Map;
+
+
 
 @RestController
 @RequestMapping("/api/vinculacion")
@@ -47,12 +55,15 @@ public class VinculacionController {
     @Operation(summary = "Listar pacientes vinculados a un médico", description = "Devuelve los pacientes vinculados al médico usando su número de tarjeta profesional")
     @ApiResponse(responseCode = "200", description = "Lista de vinculaciones obtenida correctamente")
     @GetMapping("/medico")
-    public ResponseEntity<List<Map<String, String>>> obtenerVinculacionesPorMedico(
-            @RequestParam String tarjetaProfesional) {
-
-        List<Map<String, String>> vinculaciones = vinculacionService.obtenerVinculacionesPorMedico(tarjetaProfesional);
-        return ResponseEntity.ok(vinculaciones);
+    public ResponseEntity<?> obtenerVinculacionesPorMedico(@RequestParam String tarjetaProfesional) {
+    try {
+        List<Map<String, String>> pacientes = vinculacionService.obtenerVinculacionesPorMedico(tarjetaProfesional);
+        return ResponseEntity.ok(pacientes);
+    } catch (RuntimeException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Error: " + e.getMessage());
     }
+}
+
 
     @Operation(summary = "Listar médicos vinculados a un paciente", description = "Devuelve los médicos vinculados a un paciente según tipo y número de documento")
     @ApiResponse(responseCode = "200", description = "Lista de vinculaciones obtenida correctamente")

@@ -45,6 +45,9 @@ public class PacienteController {
     private VinculacionRepository vinculacionRepository;
 
     @Autowired
+    private PacienteRepository pacienteRepository;
+
+    @Autowired
     private ContactoEmergenciaRepository contactoEmergenciaRepository;
 
     @Autowired
@@ -131,13 +134,29 @@ public class PacienteController {
 
     @GetMapping("/centro-medico/{id}")
     @Operation(summary = "Obtener pacientes por centro médico", description = "Retorna los pacientes asociados a un centro médico")
-    public ResponseEntity<?> obtenerPacientesPorCentro(@PathVariable Long id) {
-        try {
-            return ResponseEntity.ok(service.obtenerPorCentroMedico(id));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error: " + e.getMessage());
-        }
-    }
+public List<Map<String, Object>> obtenerPacientesConMedicos(@PathVariable Long id) {
+    List<Paciente> pacientes = pacienteRepository.findByCentroMedico_PkId(id);
+    return pacientes.stream().map(p -> {
+        Map<String, Object> map = new HashMap<>();
+        map.put("nombre", p.getNombre());
+        map.put("apellido", p.getApellido());
+        map.put("idDocumento", p.getIdDocumento());
+        map.put("telefono", p.getTelefono());
+        
+        List<Map<String, String>> medicos = vinculacionRepository.findByPaciente(p).stream()
+            .map(v -> {
+                Medico m = v.getMedico();
+                Map<String, String> medicoMap = new HashMap<>();
+                medicoMap.put("nombre", m.getNombre());
+                medicoMap.put("apellido", m.getApellido());
+                return medicoMap;
+            }).collect(Collectors.toList());
+
+        map.put("medicos", medicos);
+        return map;
+    }).toList();
+}
+
 
     @GetMapping("/{id}/medicos")
     @Operation(summary = "Obtener médicos vinculados a un paciente", description = "Incluye nombre, especialidad y fecha de vinculación")
