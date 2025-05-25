@@ -7,13 +7,16 @@ import com.usuarios.demo.exceptions.CentroMedicoException;
 import org.springframework.stereotype.Service;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
+import com.google.firebase.auth.UserRecord;
 import com.google.firebase.auth.UserRecord.CreateRequest;
 
-import com.google.firebase.auth.UserRecord;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.kafka.core.KafkaTemplate;
 
-import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
+import java.security.SecureRandom;
+import java.util.*;
+
 import org.springframework.transaction.annotation.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,15 +25,23 @@ import org.slf4j.LoggerFactory;
 public class SolicitudCentroMedicoService {
 
     private static final Logger logger = LoggerFactory.getLogger(SolicitudCentroMedicoService.class);
+    private static final String TOPIC = "notifications";
 
     private final SolicitudCentroMedicoRepository repository;
     private final CentroMedicoRepository centroMedicoRepository;
     private final FirebaseAuth firebaseAuth;
+    private final KafkaTemplate<String, String> kafkaTemplate;
 
-    public SolicitudCentroMedicoService(SolicitudCentroMedicoRepository repository, CentroMedicoRepository centroMedicoRepository, FirebaseAuth firebaseAuth) {
+    public SolicitudCentroMedicoService(
+            SolicitudCentroMedicoRepository repository,
+            CentroMedicoRepository centroMedicoRepository,
+            FirebaseAuth firebaseAuth,
+            KafkaTemplate<String, String> kafkaTemplate
+    ) {
         this.repository = repository;
         this.centroMedicoRepository = centroMedicoRepository;
         this.firebaseAuth = firebaseAuth;
+        this.kafkaTemplate = kafkaTemplate;
     }
 
     public SolicitudCentroMedico guardarSolicitud(SolicitudCentroMedico solicitud) {
@@ -66,6 +77,8 @@ public class SolicitudCentroMedicoService {
         solicitud.setProcesado(true);
         repository.save(solicitud);
 
+        String generatedPassword = generateRandomPassword(12);
+
         try {
             firebaseAuth.getUserByEmail(solicitud.getCorreo());
             logger.info("✅ Usuario ya existía en Firebase");
@@ -74,7 +87,7 @@ public class SolicitudCentroMedicoService {
                 try {
                     CreateRequest request = new CreateRequest()
                             .setEmail(solicitud.getCorreo())
-                            .setPassword("KalaTemporal123")
+                            .setPassword(generatedPassword)
                             .setEmailVerified(false)
                             .setDisabled(false);
 
@@ -120,7 +133,41 @@ public class SolicitudCentroMedicoService {
             nuevo.setUrlLogo(solicitud.getUrlLogo());
             centroMedicoRepository.save(nuevo);
             logger.info("✅ Centro médico guardado: " + nuevo.getCorreo());
+
+            // Enviar mensaje Kafka
+            Map<String, String> emailPayload = new HashMap<>();
+            emailPayload.put("to", solicitud.getCorreo());
+            emailPayload.put("subject", "Bienvenido a KALA");
+            emailPayload.put("text", String.format("""
+                    Bienvenido a KALA,
+
+                    Tu usuario y contraseña son los siguientes:
+                    %s
+                    %s
+
+                    El equipo de KALA estará activando tu cuenta en breve.
+                    Gracias por tu paciencia.
+                    """, solicitud.getCorreo(), generatedPassword));
+
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                String json = mapper.writeValueAsString(emailPayload);
+                kafkaTemplate.send(TOPIC, json);
+                logger.info("📨 Email de bienvenida enviado vía Kafka");
+            } catch (JsonProcessingException e) {
+                logger.error("❌ Error al serializar el mensaje de Kafka: {}", e.getMessage());
+            }
         }
+    }
+
+    private String generateRandomPassword(int length) {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#%$";
+        SecureRandom random = new SecureRandom();
+        StringBuilder password = new StringBuilder(length);
+        for (int i = 0; i < length; i++) {
+            password.append(chars.charAt(random.nextInt(chars.length())));
+        }
+        return password.toString();
     }
 
     @Transactional

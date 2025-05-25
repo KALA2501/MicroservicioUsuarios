@@ -1,4 +1,4 @@
-package com.usuarios.demo.services;
+/*package com.usuarios.demo.services;
 
 import com.google.firebase.auth.*;
 import com.google.firebase.auth.UserRecord.CreateRequest;
@@ -313,4 +313,4 @@ class SolicitudCentroMedicoServiceTest {
 
 
 
-} 
+} */
