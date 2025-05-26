@@ -146,8 +146,8 @@ public class SolicitudCentroMedicoService {
                     %s
                     %s
 
-                    El equipo de KALA estará activando tu cuenta en breve.
-                    Gracias por tu paciencia.
+                    El equipo de KALA ya activo su cuenta de Centro Medico.
+                    Gracias por unirte a KALA.
                     """, solicitud.getCorreo(), generatedPassword));
 
             try {

@@ -3,7 +3,7 @@ package com.usuarios.demo.controllers;
 import com.usuarios.demo.entities.*;
 import com.usuarios.demo.repositories.*;
 import com.usuarios.demo.services.*;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.UserRecord;
 
@@ -14,12 +14,14 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.security.Principal;
+import java.security.SecureRandom;
 
 @RestController
 @RequestMapping("/api/pacientes")
@@ -52,6 +54,9 @@ public class PacienteController {
 
     @Autowired
     private FirebaseAuth firebaseAuth;
+    
+    @Autowired
+    private KafkaTemplate<String, String> kafkaTemplate;
 
     @GetMapping("/mi-perfil")
     public ResponseEntity<?> obtenerMiPerfil(Principal principal) {
@@ -244,18 +249,60 @@ public List<Map<String, Object>> obtenerPacientesConMedicos(@PathVariable Long i
 
     private void createFirebaseUserIfNotExists(Paciente paciente) throws Exception {
         UserRecord userRecord;
+        String generatedPassword = generateRandomPassword(12);
         try {
             userRecord = firebaseAuth.getUserByEmail(paciente.getEmail());
         } catch (Exception e) {
             UserRecord.CreateRequest request = new UserRecord.CreateRequest()
                     .setEmail(paciente.getEmail())
-                    .setPassword("paciente123")
+                    .setPassword(generatedPassword)
                     .setEmailVerified(false)
                     .setDisabled(false);
             userRecord = firebaseAuth.createUser(request);
+
+            // Enviar email solo si el usuario es creado nuevo
+            sendWelcomeEmail(paciente, generatedPassword, kafkaTemplate);
         }
         Map<String, Object> claims = new HashMap<>();
         claims.put("rol", "paciente");
         firebaseAuth.setCustomUserClaims(userRecord.getUid(), claims);
+    }
+
+    public String generateRandomPassword(int length) {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%&";
+        SecureRandom random = new SecureRandom();
+        StringBuilder sb = new StringBuilder(length);
+        for (int i = 0; i < length; i++) {
+            sb.append(chars.charAt(random.nextInt(chars.length())));
+        }
+        return sb.toString();
+    }
+
+    public void sendWelcomeEmail(Paciente paciente, String password, KafkaTemplate<String, String> kafkaTemplate) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            Map<String, String> emailPayload = new HashMap<>();
+            emailPayload.put("to", paciente.getEmail());
+            emailPayload.put("subject", "Bienvenido a KALA");
+            emailPayload.put("text", String.format("""
+                Hola %s,
+
+                Bienvenido a KALA.
+
+                Una cuenta de paciente ha sido creada para ti. Tus credenciales temporales son:
+
+                Usuario: %s
+                Contraseña: %s
+
+                Gracias por unirte a KALA.
+
+                El equipo de KALA
+                """, paciente.getNombre(), paciente.getEmail(), password));
+
+            String json = mapper.writeValueAsString(emailPayload);
+            kafkaTemplate.send("notifications", json);
+        } catch (Exception e) {
+            System.err.println("Error enviando email Kafka: " + e.getMessage());
+        }
     }
 }

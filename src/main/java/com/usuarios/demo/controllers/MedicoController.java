@@ -2,16 +2,21 @@ package com.usuarios.demo.controllers;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.UserRecord;
-import com.usuarios.demo.entities.*;
+import com.usuarios.demo.entities.CentroMedico;
+import com.usuarios.demo.entities.Medico;
+import com.usuarios.demo.entities.TipoDocumento;
 import com.usuarios.demo.repositories.MedicoRepository;
 import com.usuarios.demo.services.JwtService;
 import com.usuarios.demo.services.MedicoService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.SecureRandom;
 import java.security.Principal;
 import java.util.*;
 
@@ -23,13 +28,18 @@ public class MedicoController {
     private final MedicoService service;
     private final JwtService jwtService;
     private final MedicoRepository medicoRepository;
+    private final KafkaTemplate<String, String> kafkaTemplate;
     private static final String MEDICO_NO_ENCONTRADO = "Médico no encontrado";
+    private static final String TOPIC = "notifications";
 
-
-    public MedicoController(MedicoService service, JwtService jwtService, MedicoRepository medicoRepository) {
+    public MedicoController(MedicoService service,
+                           JwtService jwtService,
+                           MedicoRepository medicoRepository,
+                           KafkaTemplate<String, String> kafkaTemplate) {
         this.service = service;
         this.jwtService = jwtService;
         this.medicoRepository = medicoRepository;
+        this.kafkaTemplate = kafkaTemplate;
     }
 
     @GetMapping
@@ -59,9 +69,13 @@ public class MedicoController {
                 return ResponseEntity.badRequest().body("Correo del médico es obligatorio");
             }
 
+            // Generar contraseña aleatoria
+            String generatedPassword = generateRandomPassword(12);
+
+            // Crear usuario Firebase
             UserRecord.CreateRequest request = new UserRecord.CreateRequest()
                     .setEmail(medico.getCorreo())
-                    .setPassword("medico123")
+                    .setPassword(generatedPassword)
                     .setEmailVerified(false)
                     .setDisabled(false);
 
@@ -76,6 +90,10 @@ public class MedicoController {
             medico.setTipoDocumento(tipoDoc.get());
 
             Medico guardado = service.guardar(medico);
+
+            // Enviar email via Kafka
+            sendWelcomeEmail(medico.getCorreo(), generatedPassword);
+
             return ResponseEntity.ok(guardado);
 
         } catch (Exception e) {
@@ -179,6 +197,44 @@ public class MedicoController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error al obtener el médico: " + e.getMessage());
+        }
+    }
+
+    // ==================== Métodos auxiliares ====================
+
+    private String generateRandomPassword(int length) {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%&";
+        SecureRandom random = new SecureRandom();
+        StringBuilder sb = new StringBuilder(length);
+        for (int i = 0; i < length; i++) {
+            sb.append(chars.charAt(random.nextInt(chars.length())));
+        }
+        return sb.toString();
+    }
+
+    private void sendWelcomeEmail(String email, String password) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            Map<String, String> emailPayload = new HashMap<>();
+            emailPayload.put("to", email);
+            emailPayload.put("subject", "Bienvenido a KALA");
+            emailPayload.put("text", String.format("""
+                    Hola,
+
+                    Bienvenido a KALA.
+
+                    Una cuenta de médico ha sido creada para ti. Tus credenciales temporales son:
+
+                    Usuario: %s
+                    Contraseña: %s
+
+                    Gracias por unirte a KALA.
+                    """, email, password));
+
+            String json = mapper.writeValueAsString(emailPayload);
+            kafkaTemplate.send(TOPIC, json);
+        } catch (Exception e) {
+            System.err.println("Error enviando email Kafka: " + e.getMessage());
         }
     }
 }
